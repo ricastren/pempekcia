@@ -187,7 +187,6 @@
 
       <!-- ================= TAB 2: DAPUR & REKAP PRODUKSI ================= -->
       <section id="tab-recap" class="hidden space-y-3">
-        <!-- Summary Banner PO -->
         <div class="bg-gradient-to-br from-amber-500 to-pempek text-white p-3.5 rounded-2xl shadow-sm space-y-2">
           <div class="flex justify-between items-center border-b border-white/20 pb-2">
             <div>
@@ -205,7 +204,6 @@
           </div>
         </div>
 
-        <!-- Total Butir Harus Dibuat -->
         <div class="bg-white p-3 rounded-2xl border border-orange-100 shadow-xs space-y-2">
           <div class="flex justify-between items-center border-b border-orange-100 pb-1.5">
             <h3 class="text-xs font-bold text-amber-950 flex items-center gap-1">
@@ -216,7 +214,6 @@
           <div id="productionItemsList" class="space-y-1.5 text-xs"></div>
         </div>
 
-        <!-- Tombol Cetak Stiker (Pilihan A3 dan A4) -->
         <div class="space-y-2 pt-1">
           <button onclick="openSheetModal('A3')" class="w-full py-2.5 bg-amber-900 text-white rounded-2xl text-xs font-bold shadow-md hover:bg-amber-950 transition flex items-center justify-center gap-2">
             <span>📄</span> Download Lembar A3 (35 Stiker/Lembar)
@@ -246,7 +243,6 @@
           💡 <b>Stok Saat Ini</b> berubah otomatis (angka merah minus = kekurangan stok). Masukkan angka di kolom <b>+ / -</b> untuk menambah stok belanja atau koreksi.
         </div>
 
-        <!-- Packaging Stock -->
         <div>
           <div class="flex justify-between items-center mb-1.5 px-1">
             <span class="text-xs font-bold text-amber-950">🛍️ Stok Kantong</span>
@@ -258,7 +254,6 @@
           <div id="packagingStockList" class="space-y-1.5"></div>
         </div>
 
-        <!-- Pempek Pieces Stock -->
         <div class="pt-1">
           <div class="flex justify-between items-center mb-1.5 px-1">
             <span class="text-xs font-bold text-amber-950">📦 Stok Butir Pempek</span>
@@ -273,7 +268,7 @@
         <button onclick="applyStockChanges()" class="w-full py-2.5 bg-amber-900 text-white rounded-xl text-xs font-semibold shadow hover:bg-amber-950 transition">Perbarui Stok Sekarang</button>
       </section>
 
-      <!-- ================= TAB 5: LABA & KAS ================= -->
+      <!-- ================= TAB 5: LABA & PENGATURAN HPP ================= -->
       <section id="tab-report" class="hidden space-y-3">
         <div class="grid grid-cols-2 gap-2">
           <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl">
@@ -289,7 +284,19 @@
         <div class="bg-amber-100/70 border border-amber-300 p-3.5 rounded-2xl">
           <span class="text-xs font-bold text-amber-950 block">💰 Laba Bersih PO Ini</span>
           <span class="text-xl font-bold text-amber-950 block mt-0.5" id="netProfitTxt">IDR 0</span>
-          <span class="text-[10px] text-amber-800/80 mt-1 block">*Gross dikurangi modal HPP per butir pempek</span>
+          <span class="text-[10px] text-amber-800/80 mt-1 block">*Omset dikurangi modal standar HPP per butir</span>
+        </div>
+
+        <!-- Panel Pengaturan HPP Standar (Bisa diubah jika harga bahan naik) -->
+        <div class="bg-white p-3.5 rounded-2xl border border-orange-100 shadow-xs space-y-2.5">
+          <div class="flex justify-between items-center border-b border-orange-100 pb-1.5">
+            <h3 class="text-xs font-bold text-amber-950">⚙️ Pengaturan Standar Modal (HPP)</h3>
+            <span class="text-[9px] text-orange-600 bg-orange-50 font-bold px-2 py-0.5 rounded-md">Bisa Diedit Sesuai Pasar</span>
+          </div>
+          <div id="hppSettingsContainer" class="space-y-2 text-xs">
+            <!-- Rendered by JS -->
+          </div>
+          <button onclick="saveHppSettings()" class="w-full py-2 bg-amber-900 text-white rounded-xl text-xs font-semibold shadow hover:bg-amber-950 transition">Simpan Perubahan HPP</button>
         </div>
       </section>
 
@@ -320,7 +327,7 @@
     </nav>
   </div>
 
-  <!-- Modal Sheet Generator (Bisa A3 / A4) -->
+  <!-- Modal Sheet Generator -->
   <div id="sheetModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 z-50">
     <div class="bg-white rounded-3xl p-4 w-full max-w-sm h-[92%] flex flex-col shadow-2xl space-y-2.5">
       <div class="flex justify-between items-center border-b pb-2">
@@ -352,7 +359,8 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    const defaultMenu = [
+    // Menu & HPP Standar (Bisa Diatur di Tab Laba)
+    let defaultMenu = JSON.parse(localStorage.getItem('pempek_cia_menu')) || [
       { id: 'cheese', name: 'Cheese Melt', price: 7000, hpp: 4000, isPackage: false },
       { id: 'kulit', name: 'Kulit', price: 4000, hpp: 2200, isPackage: false },
       { id: 'lenjer', name: 'Lenjer', price: 5000, hpp: 2800, isPackage: false },
@@ -949,7 +957,7 @@
         const item = defaultMenu.find(m => m.id === id);
         const qty = cart[id];
         gross += item.price * qty;
-        modal += item.hpp * qty;
+        modal += (item.hpp || 0) * qty;
         orderSummaryCounts[id] = qty;
 
         if (item.isPackage) {
@@ -1092,6 +1100,38 @@
       resetCart();
     }
 
+    // Render Pengaturan Standar HPP di Tab Laba
+    function renderHppSettings() {
+      const container = document.getElementById('hppSettingsContainer');
+      container.innerHTML = '';
+
+      defaultMenu.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'flex justify-between items-center bg-orange-50/50 p-2 rounded-xl border border-orange-100';
+        row.innerHTML = `
+          <span class="font-semibold text-amber-950">${item.name}</span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-[10px] text-gray-500">HPP: IDR</span>
+            <input type="number" id="hpp_input_${item.id}" value="${item.hpp || 0}" class="w-20 text-center font-bold bg-white border border-orange-200 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-amber-500">
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function saveHppSettings() {
+      defaultMenu.forEach(item => {
+        const val = parseInt(document.getElementById(`hpp_input_${item.id}`).value);
+        if (!isNaN(val)) {
+          item.hpp = val;
+        }
+      });
+
+      localStorage.setItem('pempek_cia_menu', JSON.stringify(defaultMenu));
+      renderRecapAndReports();
+      alert('Standar HPP berhasil diperbarui! Laba bersih pesanan akan menyesuaikan. ✨');
+    }
+
     function renderRecapAndReports() {
       const currentPo = getCurrentPoDate();
       document.getElementById('recapBatchDateTxt').innerText = currentPo;
@@ -1113,6 +1153,17 @@
       let modalTotal = 0;
 
       filteredOrders.forEach(order => {
+        // Hitung ulang modal riil berdasarkan HPP terbaru di defaultMenu
+        let recalculatedModal = 0;
+        Object.keys(order.counts || {}).forEach(menuId => {
+          const qty = order.counts[menuId];
+          const mObj = defaultMenu.find(m => m.id === menuId);
+          if (mObj) recalculatedModal += (mObj.hpp || 0) * qty;
+        });
+
+        order.modal = recalculatedModal;
+        order.profit = order.gross - order.modal;
+
         grossTotal += order.gross;
         modalTotal += order.modal;
 
@@ -1189,27 +1240,21 @@
       document.getElementById('grossTxt').innerText = `IDR ${grossTotal.toLocaleString()}`;
       document.getElementById('modalTxt').innerText = `IDR ${modalTotal.toLocaleString()}`;
       document.getElementById('netProfitTxt').innerText = `IDR ${(grossTotal - modalTotal).toLocaleString()}`;
+
+      renderHppSettings();
     }
 
-    // Generator Lembaran Universal (Mendukung Format A3 & A4 Presisi)
+    // Generator Lembar Universal (A3 & A4)
     function generateFullSheet(formatType, pageStickers, pageIndex, totalPages, bgImg, callback) {
       const isA3 = (formatType === 'A3');
-
-      // Resolusi 300 DPI:
-      // A3: 3508 x 4960 px | A4: 2480 x 3508 px
       const SHEET_WIDTH = isA3 ? 3508 : 2480;
       const SHEET_HEIGHT = isA3 ? 4960 : 3508;
-
-      // A3: 5 kolom x 7 baris (35 stiker) | A4: 3 kolom x 5 baris (15 stiker)
       const COLS = isA3 ? 5 : 3;
       const ROWS = isA3 ? 7 : 5;
       const TOTAL_SLOTS = COLS * ROWS;
-
-      // Ukuran stiker di A4 dibuat identik dengan versi A3 (~624px)
       const STICKER_SIZE = isA3 ? 624 : 640;
-      const GAP = isA3 ? 40 : 40;
+      const GAP = 40;
 
-      // Hitung margin agar stiker berada persis di tengah lembar
       const totalGridW = (COLS * STICKER_SIZE) + ((COLS - 1) * GAP);
       const totalGridH = (ROWS * STICKER_SIZE) + ((ROWS - 1) * GAP);
       const MARGIN_X = Math.floor((SHEET_WIDTH - totalGridW) / 2);
@@ -1229,10 +1274,8 @@
         const x = MARGIN_X + col * (STICKER_SIZE + GAP);
         const y = MARGIN_Y + row * (STICKER_SIZE + GAP);
 
-        // Background stiker
         ctx.drawImage(bgImg, x, y, STICKER_SIZE, STICKER_SIZE);
 
-        // Garis potong
         ctx.strokeStyle = "#e2e8f0";
         ctx.lineWidth = 2;
         ctx.strokeRect(x, y, STICKER_SIZE, STICKER_SIZE);
@@ -1300,7 +1343,6 @@
       return stickerList;
     }
 
-    // Modal Sheet Universal (Bisa format A3 atau A4)
     function openSheetModal(formatType = 'A3') {
       const currentPo = getCurrentPoDate();
       const filteredOrders = orders.filter(o => o.poDate === currentPo);
