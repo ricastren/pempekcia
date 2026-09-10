@@ -199,7 +199,6 @@
               <div class="text-base font-bold" id="recapCustomerCount">0 Orang</div>
             </div>
           </div>
-          <!-- Grand Total Seluruh Butir Pempek -->
           <div class="flex justify-between items-center pt-0.5">
             <span class="text-xs font-semibold opacity-95">Total Keseluruhan Pempek:</span>
             <span class="text-lg font-extrabold bg-white/20 px-3 py-0.5 rounded-xl backdrop-blur-xs" id="grandTotalPiecesTxt">0 Butir</span>
@@ -217,10 +216,13 @@
           <div id="productionItemsList" class="space-y-1.5 text-xs"></div>
         </div>
 
-        <!-- Tombol Cetak Stiker A3 -->
-        <div class="pt-1">
-          <button onclick="openA3SheetModal()" class="w-full py-2.5 bg-amber-900 text-white rounded-2xl text-xs font-bold shadow-md hover:bg-amber-950 transition flex items-center justify-center gap-2">
-            <span>📄</span> Download Lembar Stiker A3 (Full 35 Kotak)
+        <!-- Tombol Cetak Stiker (Pilihan A3 dan A4) -->
+        <div class="space-y-2 pt-1">
+          <button onclick="openSheetModal('A3')" class="w-full py-2.5 bg-amber-900 text-white rounded-2xl text-xs font-bold shadow-md hover:bg-amber-950 transition flex items-center justify-center gap-2">
+            <span>📄</span> Download Lembar A3 (35 Stiker/Lembar)
+          </button>
+          <button onclick="openSheetModal('A4')" class="w-full py-2.5 bg-orange-600 text-white rounded-2xl text-xs font-bold shadow-md hover:bg-orange-700 transition flex items-center justify-center gap-2">
+            <span>📄</span> Download Lembar A4 (15 Stiker/Lembar)
           </button>
         </div>
       </section>
@@ -293,7 +295,7 @@
 
     </div>
 
-    <!-- Bottom Navigation Bar: 5 Tombol Lengkap -->
+    <!-- Bottom Navigation Bar -->
     <nav class="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-orange-100 px-3 py-2 flex justify-between items-center rounded-b-[36px]">
       <button onclick="switchTab('order')" id="nav-order" class="flex flex-col items-center gap-0.5 text-pempek flex-1">
         <span class="text-base">📝</span>
@@ -318,21 +320,21 @@
     </nav>
   </div>
 
-  <!-- Modal A3 Sheet Generator -->
-  <div id="a3SheetModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 z-50">
+  <!-- Modal Sheet Generator (Bisa A3 / A4) -->
+  <div id="sheetModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 z-50">
     <div class="bg-white rounded-3xl p-4 w-full max-w-sm h-[92%] flex flex-col shadow-2xl space-y-2.5">
       <div class="flex justify-between items-center border-b pb-2">
         <div>
-          <h3 class="text-xs font-bold text-amber-950">Lembaran Kertas A3 Siap Cetak 📄</h3>
-          <span class="text-[10px] text-gray-400">Penuh 35 stiker per lembar (Sisa diisi stiker kosong)</span>
+          <h3 id="modalSheetTitle" class="text-xs font-bold text-amber-950">Lembaran Stiker Siap Cetak 📄</h3>
+          <span id="modalSheetSubtitle" class="text-[10px] text-gray-400">Sisa slot diisi stiker cadangan polos</span>
         </div>
-        <button onclick="closeA3SheetModal()" class="text-gray-400 hover:text-gray-600 font-bold text-base">✕</button>
+        <button onclick="closeSheetModal()" class="text-gray-400 hover:text-gray-600 font-bold text-base">✕</button>
       </div>
 
-      <div class="flex-1 overflow-y-auto hide-scrollbar p-1 space-y-3" id="a3SheetContainer"></div>
+      <div class="flex-1 overflow-y-auto hide-scrollbar p-1 space-y-3" id="sheetContainer"></div>
 
       <div class="flex gap-2 pt-2 border-t">
-        <button onclick="closeA3SheetModal()" class="w-full py-2 bg-gray-100 text-gray-700 text-xs font-semibold rounded-xl hover:bg-gray-200">Tutup</button>
+        <button onclick="closeSheetModal()" class="w-full py-2 bg-gray-100 text-gray-700 text-xs font-semibold rounded-xl hover:bg-gray-200">Tutup</button>
       </div>
     </div>
   </div>
@@ -1189,42 +1191,52 @@
       document.getElementById('netProfitTxt').innerText = `IDR ${(grossTotal - modalTotal).toLocaleString()}`;
     }
 
-    // Generator Lembaran Kertas A3: PENUH 35 KOTAK STIKER PER LEMBAR
-    function generateA3FullSheet(pageStickers, pageIndex, totalPages, bgImg, callback) {
-      const A3_WIDTH = 3508;
-      const A3_HEIGHT = 4960;
+    // Generator Lembaran Universal (Mendukung Format A3 & A4 Presisi)
+    function generateFullSheet(formatType, pageStickers, pageIndex, totalPages, bgImg, callback) {
+      const isA3 = (formatType === 'A3');
+
+      // Resolusi 300 DPI:
+      // A3: 3508 x 4960 px | A4: 2480 x 3508 px
+      const SHEET_WIDTH = isA3 ? 3508 : 2480;
+      const SHEET_HEIGHT = isA3 ? 4960 : 3508;
+
+      // A3: 5 kolom x 7 baris (35 stiker) | A4: 3 kolom x 5 baris (15 stiker)
+      const COLS = isA3 ? 5 : 3;
+      const ROWS = isA3 ? 7 : 5;
+      const TOTAL_SLOTS = COLS * ROWS;
+
+      // Ukuran stiker di A4 dibuat identik dengan versi A3 (~624px)
+      const STICKER_SIZE = isA3 ? 624 : 640;
+      const GAP = isA3 ? 40 : 40;
+
+      // Hitung margin agar stiker berada persis di tengah lembar
+      const totalGridW = (COLS * STICKER_SIZE) + ((COLS - 1) * GAP);
+      const totalGridH = (ROWS * STICKER_SIZE) + ((ROWS - 1) * GAP);
+      const MARGIN_X = Math.floor((SHEET_WIDTH - totalGridW) / 2);
+      const MARGIN_Y = Math.floor((SHEET_HEIGHT - totalGridH) / 2);
+
       const canvas = document.createElement("canvas");
-      canvas.width = A3_WIDTH;
-      canvas.height = A3_HEIGHT;
+      canvas.width = SHEET_WIDTH;
+      canvas.height = SHEET_HEIGHT;
       const ctx = canvas.getContext("2d");
 
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, A3_WIDTH, A3_HEIGHT);
+      ctx.fillRect(0, 0, SHEET_WIDTH, SHEET_HEIGHT);
 
-      const COLS = 5;
-      const ROWS = 7;
-      const TOTAL_SLOTS = COLS * ROWS; // 35 kotak
-      const MARGIN_X = 114;
-      const MARGIN_Y = 110;
-      const GAP = 40;
-      const STICKER_SIZE = 624;
-
-      // Loop sebanyak 35 slot penuh
       for (let idx = 0; idx < TOTAL_SLOTS; idx++) {
         const col = idx % COLS;
         const row = Math.floor(idx / COLS);
         const x = MARGIN_X + col * (STICKER_SIZE + GAP);
         const y = MARGIN_Y + row * (STICKER_SIZE + GAP);
 
-        // 1. Selalu gambar background stiker di semua 35 slot
+        // Background stiker
         ctx.drawImage(bgImg, x, y, STICKER_SIZE, STICKER_SIZE);
 
-        // 2. Garis potong
+        // Garis potong
         ctx.strokeStyle = "#e2e8f0";
         ctx.lineWidth = 2;
         ctx.strokeRect(x, y, STICKER_SIZE, STICKER_SIZE);
 
-        // 3. Jika slot ini milik pesanan, tulis angka dan nama
         const stk = pageStickers[idx];
         if (stk) {
           ctx.fillStyle = "#0d1b2a";
@@ -1249,17 +1261,15 @@
             }
           });
 
-          // Tulis Nama Pemesan
           ctx.font = "bold 17px 'Fredoka', sans-serif";
           ctx.fillText(stk.labelNama, x + (260 * scale), y + (862 * scale));
         }
-        // Jika tidak ada pesanan (slot kosong), stiker dibiarkan polos bersih siap tulis pulpen!
       }
 
       ctx.fillStyle = "#94a3b8";
       ctx.font = "bold 24px 'Fredoka', sans-serif";
       ctx.textAlign = "right";
-      ctx.fillText(`Pempek Cia - Lembar A3 (${pageIndex + 1}/${totalPages})`, A3_WIDTH - MARGIN_X, A3_HEIGHT - 40);
+      ctx.fillText(`Pempek Cia - Lembar ${formatType} (${pageIndex + 1}/${totalPages})`, SHEET_WIDTH - MARGIN_X, SHEET_HEIGHT - 35);
 
       callback(canvas.toDataURL("image/png"));
     }
@@ -1290,7 +1300,8 @@
       return stickerList;
     }
 
-    function openA3SheetModal() {
+    // Modal Sheet Universal (Bisa format A3 atau A4)
+    function openSheetModal(formatType = 'A3') {
       const currentPo = getCurrentPoDate();
       const filteredOrders = orders.filter(o => o.poDate === currentPo);
 
@@ -1300,13 +1311,16 @@
       }
 
       const allStickers = getAllStickersForPO(filteredOrders);
-
-      const container = document.getElementById('a3SheetContainer');
-      container.innerHTML = '<div class="text-center py-8 text-xs text-gray-500 font-semibold">Menyusun stiker penuh ke lembaran A3...</div>';
-      document.getElementById('a3SheetModal').classList.remove('hidden');
-
-      const STICKERS_PER_PAGE = 35;
+      const isA3 = (formatType === 'A3');
+      const STICKERS_PER_PAGE = isA3 ? 35 : 15;
       const totalPages = Math.ceil(allStickers.length / STICKERS_PER_PAGE);
+
+      document.getElementById('modalSheetTitle').innerText = `Lembaran Kertas ${formatType} Siap Cetak 📄`;
+      document.getElementById('modalSheetSubtitle').innerText = `${STICKERS_PER_PAGE} stiker per lembar (Sisa diisi stiker cadangan polos)`;
+
+      const container = document.getElementById('sheetContainer');
+      container.innerHTML = `<div class="text-center py-8 text-xs text-gray-500 font-semibold">Menyusun stiker lembaran ${formatType}...</div>`;
+      document.getElementById('sheetModal').classList.remove('hidden');
 
       const bgImg = new Image();
       bgImg.src = "sticker.png";
@@ -1319,21 +1333,21 @@
           const filledOrderCount = pageStickers.length;
           const blankCount = STICKERS_PER_PAGE - filledOrderCount;
 
-          generateA3FullSheet(pageStickers, p, totalPages, bgImg, function(pngUrl) {
+          generateFullSheet(formatType, pageStickers, p, totalPages, bgImg, function(pngUrl) {
             cardsHtml[p] = `
               <div class="bg-orange-50/70 p-3 rounded-2xl border border-orange-200 flex flex-col items-center gap-2">
                 <div class="w-full flex justify-between items-center px-1">
                   <div>
-                    <span class="font-bold text-amber-950 text-xs">Lembar A3 #${p + 1}</span>
+                    <span class="font-bold text-amber-950 text-xs">Lembar ${formatType} #${p + 1}</span>
                     <span class="text-[10px] text-gray-500 block">
-                      ${filledOrderCount} Stiker Pesanan + ${blankCount} Stiker Kosong (Cadangan)
+                      ${filledOrderCount} Stiker Pesanan + ${blankCount} Stiker Kosong
                     </span>
                   </div>
-                  <a href="${pngUrl}" download="Lembar_A3_PempekCia_${currentPo}_Part${p + 1}.png" class="text-xs bg-pempek text-white font-bold px-3 py-1.5 rounded-xl shadow-xs hover:bg-orange-500 flex items-center gap-1">
-                    <span>⬇️</span> Unduh A3 (.PNG)
+                  <a href="${pngUrl}" download="Lembar_${formatType}_PempekCia_${currentPo}_Part${p + 1}.png" class="text-xs bg-pempek text-white font-bold px-3 py-1.5 rounded-xl shadow-xs hover:bg-orange-500 flex items-center gap-1">
+                    <span>⬇️</span> Unduh ${formatType} (.PNG)
                   </a>
                 </div>
-                <img src="${pngUrl}" class="w-full h-auto rounded-lg shadow-sm border border-orange-200 bg-white" alt="Lembar A3 Part ${p + 1}" />
+                <img src="${pngUrl}" class="w-full h-auto rounded-lg shadow-sm border border-orange-200 bg-white" alt="Lembar ${formatType} Part ${p + 1}" />
               </div>
             `;
             completed++;
@@ -1345,8 +1359,8 @@
       };
     }
 
-    function closeA3SheetModal() {
-      document.getElementById('a3SheetModal').classList.add('hidden');
+    function closeSheetModal() {
+      document.getElementById('sheetModal').classList.add('hidden');
     }
 
     function renderStock() {
