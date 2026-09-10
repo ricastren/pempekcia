@@ -267,7 +267,7 @@
         <button onclick="applyStockChanges()" class="w-full py-2.5 bg-amber-900 text-white rounded-xl text-xs font-semibold shadow hover:bg-amber-950 transition">Perbarui Stok Sekarang</button>
       </section>
 
-      <!-- ================= TAB 5: LABA & KUSTOMISASI MASTER BAHAN KUSTOM ================= -->
+      <!-- ================= TAB 5: LABA & PENGATURAN 2 BARIS ================= -->
       <section id="tab-report" class="hidden space-y-3">
         <div class="grid grid-cols-2 gap-2">
           <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl">
@@ -283,13 +283,13 @@
         <div class="bg-amber-100/70 border border-amber-300 p-3.5 rounded-2xl">
           <span class="text-xs font-bold text-amber-950 block">💰 Laba Bersih PO Ini</span>
           <span class="text-xl font-bold text-amber-950 block mt-0.5" id="netProfitTxt">IDR 0</span>
-          <span class="text-[10px] text-amber-800/80 mt-1 block">*Omset dikurangi modal otomatis dari resep gramasi</span>
+          <span class="text-[10px] text-amber-800/80 mt-1 block">*Omset dikurangi modal otomatis (termasuk Cuko)</span>
         </div>
 
-        <!-- 1. Master Harga Bahan Kustom (Full Kostumisasi Satuan & Qty) -->
+        <!-- 1. Master Harga Bahan (Layout 2 Baris, Bebas Satuan) -->
         <div class="bg-white p-3.5 rounded-2xl border border-orange-100 shadow-xs space-y-2.5">
           <div class="flex justify-between items-center border-b border-orange-100 pb-1.5">
-            <h3 class="text-xs font-bold text-amber-950">⚙️ Master Harga Bahan Kustom</h3>
+            <h3 class="text-xs font-bold text-amber-950">⚙️ Master Harga Bahan (2 Baris)</h3>
             <button onclick="addMasterIngredient()" class="text-[9px] bg-pempek text-white font-bold px-2 py-0.5 rounded-md">+ Bahan</button>
           </div>
           <div id="masterIngredientsContainer" class="space-y-2 text-xs max-h-56 overflow-y-auto hide-scrollbar">
@@ -297,10 +297,10 @@
           </div>
         </div>
 
-        <!-- 2. Accordion Dropdown Rahasia Resep per Menu (Tombol Save Mandiri per Menu) -->
+        <!-- 2. Rahasia Resep Gramasi & Cuko (Tambah Bahan Satu-Satu) -->
         <div class="bg-white p-3.5 rounded-2xl border border-orange-100 shadow-xs space-y-2.5">
           <div class="border-b border-orange-100 pb-1.5">
-            <h3 class="text-xs font-bold text-amber-950">🤫 Rahasia Resep & Gramasi (Save Per Menu)</h3>
+            <h3 class="text-xs font-bold text-amber-950">🤫 Rahasia Resep Pempek & Kuah Cuko</h3>
           </div>
           <div id="recipeAccordionContainer" class="space-y-2 text-xs">
             <!-- Rendered by JS -->
@@ -367,23 +367,25 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // 1. Master Harga Bahan Baku Kustom (Bisa set Rp sekian untuk Qty kustom, misal 160 gram atau 200 ml)
+    // 1. Master Harga Bahan Baku Kustom
     let masterIngredients = JSON.parse(localStorage.getItem('pempek_cia_ingredients')) || {
       'ikan': { name: 'Daging Ikan Giling', price: 106000, qty: 1000, unit: 'gram' },
       'kulit_ikan': { name: 'Kulit Ikan Tenggiri/Gabus', price: 40000, qty: 1000, unit: 'gram' },
-      'air_es': { name: 'Air Es / Santan', price: 5000, qty: 1000, unit: 'ml' },
+      'air_es': { name: 'Air / Santan', price: 5000, qty: 1000, unit: 'ml' },
       'telur': { name: 'Putih Telur / Telur Utuh', price: 28000, qty: 1000, unit: 'gram' },
       'bawang_merah': { name: 'Bawang Merah / Putih', price: 35000, qty: 1000, unit: 'gram' },
       'daun_bawang': { name: 'Daun Bawang', price: 20000, qty: 1000, unit: 'gram' },
-      'garam_gula': { name: 'Garam, Gula, Lada & Bumbu', price: 20000, qty: 1000, unit: 'gram' },
+      'garam_gula': { name: 'Garam, Gula & Bumbu', price: 20000, qty: 1000, unit: 'gram' },
       'kaldu': { name: 'Kaldu Jamur / Totole', price: 50000, qty: 1000, unit: 'gram' },
       'minyak': { name: 'Minyak Goreng', price: 20000, qty: 1000, unit: 'ml' },
       'sagu': { name: 'Tepung Sagu / Tapioka', price: 22000, qty: 1000, unit: 'gram' },
       'maizena_beras': { name: 'Maizena & Tepung Beras', price: 16000, qty: 1000, unit: 'gram' },
-      'keju': { name: 'Keju Melt', price: 85000, qty: 1000, unit: 'gram' }
+      'keju': { name: 'Keju Melt', price: 85000, qty: 1000, unit: 'gram' },
+      'gula_merah_cuko': { name: 'Gula Merah / Batok Cuko', price: 25000, qty: 1000, unit: 'gram' },
+      'asam_cuko': { name: 'Asam Jawa / Cabai Cuko', price: 30000, qty: 1000, unit: 'gram' }
     };
 
-    // 2. Resep Gramasi Sesuai Takaran Rahasia Kamu
+    // 2. Resep Pempek & Resep Cuko Khusus
     let defaultMenu = JSON.parse(localStorage.getItem('pempek_cia_menu')) || [
       { 
         id: 'kulit', name: 'Kulit (60 pcs)', price: 4000, hpp: 0, isPackage: false,
@@ -420,6 +422,12 @@
         breakdown: { selam: 1, lenjer: 1, kulit: 1, adaan: 2 }
       }
     ];
+
+    // Resep Cuko (Basis 1 Batch Porsi Cuko untuk Total Sekian Pcs Pempek)
+    let cukoRecipeData = JSON.parse(localStorage.getItem('pempek_cia_cukorecipe')) || {
+      batchYieldPieces: 100, // Misal resep ini untuk 100 butir pempek
+      recipe: { gula_merah_cuko: 500, asam_cuko: 100, bawang_merah: 100 }
+    };
 
     let cart = {};
     let isSplitMode = false;
@@ -968,6 +976,39 @@
       }
     }
 
+    // Kalkulasi Total Modal Termasuk Modal Cuko per Kantong
+    function calculateTotalModalForOrder(orderCounts, bags) {
+      let pempekModal = 0;
+      Object.keys(orderCounts || {}).forEach(menuId => {
+        const qty = orderCounts[menuId];
+        const mObj = defaultMenu.find(m => m.id === menuId);
+        if (mObj) pempekModal += (mObj.hpp || 0) * qty;
+      });
+
+      // Hitung modal cuko berdasarkan jumlah botol/kantong cuko S dan L yang dipakai
+      let cukoModal = 0;
+      const resolvedBags = (bags && bags.length > 0) ? bags : generateDefaultBags(orderCounts);
+      
+      let totalCukoS = 0;
+      let totalCukoL = 0;
+      resolvedBags.forEach(bag => {
+        const p = getBagPackaging(bag);
+        totalCukoS += (p.cuko_s || 0);
+        totalCukoL += (p.cuko_l || 0);
+      });
+
+      // Biaya cuko per bungkus dihitung proporsional dari resep cuko batch
+      const cukoBatchCost = calculateBatchCost(cukoRecipeData.recipe);
+      const cukoYield = cukoRecipeData.batchYieldPieces || 100;
+      const costPerButirCuko = cukoBatchCost / cukoYield;
+
+      // Estimasi porsi cuko: kantong S = 1 porsi, kantong L = 2 porsi
+      const totalCukoPortions = (totalCukoS * 1) + (totalCukoL * 2);
+      cukoModal = totalCukoPortions * costPerButirCuko;
+
+      return Math.round(pempekModal + cukoModal);
+    }
+
     function submitOrder() {
       const cust = document.getElementById('custName').value.trim();
       const itemsInCart = Object.keys(cart);
@@ -987,7 +1028,6 @@
       }
 
       let gross = 0;
-      let modal = 0;
       let orderSummaryCounts = {
         selam: 0,
         lenjer: 0,
@@ -1001,7 +1041,6 @@
         const item = defaultMenu.find(m => m.id === id);
         const qty = cart[id];
         gross += item.price * qty;
-        modal += (item.hpp || 0) * qty;
         orderSummaryCounts[id] = qty;
 
         if (item.isPackage) {
@@ -1015,6 +1054,7 @@
 
       const bagsToSave = (isSplitMode && customBags.length > 0) ? customBags : generateDefaultBags(orderSummaryCounts);
       const packagingUsed = calculateOrderPackaging(orderSummaryCounts, bagsToSave);
+      const modal = calculateTotalModalForOrder(orderSummaryCounts, bagsToSave);
 
       for (let key in packagingUsed) {
         packagingStock[key] = (packagingStock[key] || 0) - packagingUsed[key];
@@ -1144,22 +1184,27 @@
       resetCart();
     }
 
-    // Kalkulasi HPP Berdasarkan Satuan Kustom Master Bahan
-    function calculateHppFromRecipe(recipe, batchSize) {
-      if (!recipe || !batchSize || batchSize <= 0) return 0;
-      let totalBatchCost = 0;
+    // Kalkulator Biaya Batch Total Berdasarkan Master Harga Kustom
+    function calculateBatchCost(recipe) {
+      if (!recipe) return 0;
+      let totalCost = 0;
       for (let ingKey in recipe) {
-        const usedQty = recipe[ingKey] || 0; // misal gram atau ml yang dipakai di resep
+        const amount = recipe[ingKey] || 0;
         const ingObj = masterIngredients[ingKey];
         if (ingObj && ingObj.qty > 0) {
-          const costPerUnit = (ingObj.price || 0) / ingObj.qty;
-          totalBatchCost += usedQty * costPerUnit;
+          totalCost += (amount / ingObj.qty) * (ingObj.price || 0);
         }
       }
+      return totalCost;
+    }
+
+    function calculateHppFromRecipe(recipe, batchSize) {
+      if (!recipe || !batchSize || batchSize <= 0) return 0;
+      const totalBatchCost = calculateBatchCost(recipe);
       return Math.round(totalBatchCost / batchSize);
     }
 
-    // Save Mandiri untuk Master Bahan Baku Kustom
+    // Save Master Bahan Baku Kustom
     function saveSingleIngredient(key) {
       const nameInput = document.getElementById(`ing_name_${key}`);
       const priceInput = document.getElementById(`ing_price_${key}`);
@@ -1189,7 +1234,7 @@
       }
     }
 
-    // Save Mandiri untuk Resep per Menu
+    // Save Resep Menu + Tambah/Hapus Bahan Dinamis
     function saveSingleRecipe(itemId) {
       const item = defaultMenu.find(m => m.id === itemId);
       if (!item) return;
@@ -1214,6 +1259,64 @@
       renderMasterAndRecipes();
       renderRecapAndReports();
       alert(`✅ Resep dan HPP untuk "${item.name}" berhasil disimpan!`);
+    }
+
+    function addIngredientToRecipe(itemId) {
+      const selectEl = document.getElementById(`select_add_ing_${itemId}`);
+      const ingKey = selectEl.value;
+      if (!ingKey) return;
+
+      const item = defaultMenu.find(m => m.id === itemId);
+      if (item) {
+        if (!item.recipe) item.recipe = {};
+        if (!item.recipe[ingKey]) item.recipe[ingKey] = 10; // Default 10
+        saveSingleRecipe(itemId);
+      }
+    }
+
+    function removeIngredientFromRecipe(itemId, ingKey) {
+      const item = defaultMenu.find(m => m.id === itemId);
+      if (item && item.recipe) {
+        delete item.recipe[ingKey];
+        saveSingleRecipe(itemId);
+      }
+    }
+
+    // Save Resep Cuko
+    function saveCukoRecipe() {
+      const yieldInput = document.getElementById('cuko_batch_yield');
+      if (yieldInput) cukoRecipeData.batchYieldPieces = parseInt(yieldInput.value) || 100;
+
+      let newRecipe = {};
+      for (let ingKey in masterIngredients) {
+        const inputEl = document.getElementById(`recipe_gram_cuko_${ingKey}`);
+        if (inputEl) {
+          const g = parseFloat(inputEl.value) || 0;
+          if (g > 0) newRecipe[ingKey] = g;
+        }
+      }
+      cukoRecipeData.recipe = newRecipe;
+
+      localStorage.setItem('pempek_cia_cukorecipe', JSON.stringify(cukoRecipeData));
+      renderRecapAndReports();
+      alert(`✅ Resep Kuah Cuko berhasil disimpan!`);
+    }
+
+    function addIngredientToCuko() {
+      const selectEl = document.getElementById(`select_add_ing_cuko`);
+      const ingKey = selectEl.value;
+      if (!ingKey) return;
+
+      if (!cukoRecipeData.recipe) cukoRecipeData.recipe = {};
+      if (!cukoRecipeData.recipe[ingKey]) cukoRecipeData.recipe[ingKey] = 10;
+      saveCukoRecipe();
+    }
+
+    function removeIngredientFromCuko(ingKey) {
+      if (cukoRecipeData.recipe) {
+        delete cukoRecipeData.recipe[ingKey];
+        saveCukoRecipe();
+      }
     }
 
     function updatePackageHpp() {
@@ -1241,27 +1344,29 @@
       }
     }
 
-    // Render Master Bahan Kustom & Accordion Resep
+    // Render Tampilan Master 2 Baris & Accordion Dinamis
     function renderMasterAndRecipes() {
       const ingContainer = document.getElementById('masterIngredientsContainer');
       ingContainer.innerHTML = '';
       for (let key in masterIngredients) {
         const ing = masterIngredients[key];
         const div = document.createElement('div');
-        div.className = 'flex items-center justify-between bg-orange-50/50 p-2 rounded-xl border border-orange-100 gap-1';
+        div.className = 'bg-orange-50/50 p-2 rounded-xl border border-orange-100 space-y-1.5';
         div.innerHTML = `
-          <input type="text" id="ing_name_${key}" value="${ing.name}" class="w-24 text-xs font-bold bg-white border border-orange-200 rounded px-1.5 py-1">
-          <div class="flex items-center gap-0.5">
-            <span class="text-[9px] text-gray-500">Rp</span>
-            <input type="number" id="ing_price_${key}" value="${ing.price}" class="w-14 text-center text-xs font-bold bg-white border border-orange-200 rounded px-1 py-1" placeholder="Harga">
+          <!-- Baris 1: Nama & Tombol Save/Delete -->
+          <div class="flex items-center justify-between gap-1.5">
+            <input type="text" id="ing_name_${key}" value="${ing.name}" class="flex-1 text-xs font-bold bg-white border border-orange-200 rounded px-2 py-1">
+            <button onclick="saveSingleIngredient('${key}')" class="px-3 py-1 bg-amber-900 text-white rounded-lg text-[10px] font-bold shadow-xs hover:bg-amber-950">Save</button>
+            <button onclick="deleteMasterIngredient('${key}')" class="text-red-500 font-bold px-1.5 text-xs">✕</button>
           </div>
-          <div class="flex items-center gap-0.5">
-            <span class="text-[9px] text-gray-500">per</span>
-            <input type="number" id="ing_qty_${key}" value="${ing.qty || 1000}" class="w-12 text-center text-xs font-bold bg-white border border-orange-200 rounded px-1 py-1" placeholder="Qty">
-            <input type="text" id="ing_unit_${key}" value="${ing.unit || 'gram'}" class="w-14 text-[10px] text-center font-bold bg-white border border-orange-200 rounded px-1 py-1" placeholder="Satuan">
+          <!-- Baris 2: Harga, Qty, Satuan -->
+          <div class="flex items-center gap-1.5 text-[10px]">
+            <span class="text-gray-500 font-semibold">Rp</span>
+            <input type="number" id="ing_price_${key}" value="${ing.price}" class="w-16 text-center font-bold bg-white border border-orange-200 rounded py-0.5" placeholder="Harga">
+            <span class="text-gray-500 font-semibold">per</span>
+            <input type="number" id="ing_qty_${key}" value="${ing.qty || 1000}" class="w-12 text-center font-bold bg-white border border-orange-200 rounded py-0.5" placeholder="Qty">
+            <input type="text" id="ing_unit_${key}" value="${ing.unit || 'gram'}" class="flex-1 text-center font-bold bg-white border border-orange-200 rounded py-0.5" placeholder="Satuan">
           </div>
-          <button onclick="saveSingleIngredient('${key}')" class="px-2 py-1 bg-amber-900 text-white rounded-lg text-[10px] font-bold shadow-xs hover:bg-amber-950">Save</button>
-          <button onclick="deleteMasterIngredient('${key}')" class="text-red-500 font-bold px-1 text-xs">✕</button>
         `;
         ingContainer.appendChild(div);
       }
@@ -1269,6 +1374,7 @@
       const accordionContainer = document.getElementById('recipeAccordionContainer');
       accordionContainer.innerHTML = '';
 
+      // Render Resep Pempek (Non-Paket)
       defaultMenu.forEach(item => {
         if (item.isPackage) return;
 
@@ -1278,18 +1384,28 @@
 
         let recipeRowsHtml = '';
         const recipeObj = item.recipe || {};
-        for (let ingKey in masterIngredients) {
+        for (let ingKey in recipeObj) {
           const ing = masterIngredients[ingKey];
-          const gramVal = recipeObj[ingKey] || 0;
+          if (!ing) continue;
+          const val = recipeObj[ingKey];
           recipeRowsHtml += `
-            <div class="flex items-center justify-between text-[11px]">
-              <span class="text-gray-600">${ing.name}</span>
+            <div class="flex items-center justify-between text-[11px] py-0.5">
+              <span class="text-gray-700 font-medium">${ing.name}</span>
               <div class="flex items-center gap-1">
-                <input type="number" min="0" id="recipe_gram_${item.id}_${ingKey}" value="${gramVal}" class="w-14 text-center font-bold bg-white border border-orange-200 rounded py-0.5">
-                <span class="text-[9px] text-gray-400 w-6">${ing.unit || 'gr'}</span>
+                <input type="number" min="0" id="recipe_gram_${item.id}_${ingKey}" value="${val}" class="w-14 text-center font-bold bg-white border border-orange-200 rounded py-0.5">
+                <span class="text-[9px] text-gray-400 w-8">${ing.unit || 'gr'}</span>
+                <button onclick="removeIngredientFromRecipe('${item.id}', '${ingKey}')" class="text-red-500 font-bold px-1 text-xs">✕</button>
               </div>
             </div>
           `;
+        }
+
+        // Dropdown options untuk tambah bahan
+        let availableOptions = '';
+        for (let k in masterIngredients) {
+          if (!recipeObj[k]) {
+            availableOptions += `<option value="${k}">${masterIngredients[k].name}</option>`;
+          }
         }
 
         itemCard.innerHTML = `
@@ -1309,9 +1425,20 @@
                 <span class="text-[10px] text-gray-500">pcs</span>
               </div>
             </div>
-            <div class="space-y-1.5 pl-0.5 max-h-48 overflow-y-auto hide-scrollbar">
-              ${recipeRowsHtml}
+
+            <div class="space-y-1 pl-0.5 max-h-40 overflow-y-auto hide-scrollbar">
+              ${recipeRowsHtml || '<div class="text-[10px] text-gray-400">Belum ada bahan ditambahkan.</div>'}
             </div>
+
+            <!-- Tambah Bahan Baru ke Resep Ini -->
+            <div class="flex gap-1.5 pt-1 border-t border-orange-100">
+              <select id="select_add_ing_${item.id}" class="flex-1 text-[10px] font-bold bg-white border border-orange-200 rounded px-1 py-1">
+                <option value="">-- Pilih Bahan untuk Ditambah --</option>
+                ${availableOptions}
+              </select>
+              <button onclick="addIngredientToRecipe('${item.id}')" class="px-2.5 py-1 bg-pempek text-white rounded font-bold text-[10px]">+ Tambah</button>
+            </div>
+
             <button onclick="saveSingleRecipe('${item.id}')" class="w-full py-1.5 bg-amber-900 text-white rounded-lg text-xs font-bold shadow hover:bg-amber-950 transition">
               Simpan Resep ${item.name} 💾
             </button>
@@ -1319,6 +1446,73 @@
         `;
         accordionContainer.appendChild(itemCard);
       });
+
+      // Render Resep Kuah Cuko Khusus di Bawahnya
+      const cukoHpp = calculateBatchCost(cukoRecipeData.recipe);
+      const cukoCard = document.createElement('div');
+      cukoCard.className = 'bg-amber-50/50 rounded-xl border border-amber-200 overflow-hidden';
+
+      let cukoRowsHtml = '';
+      const cukoRecipeObj = cukoRecipeData.recipe || {};
+      for (let ingKey in cukoRecipeObj) {
+        const ing = masterIngredients[ingKey];
+        if (!ing) continue;
+        const val = cukoRecipeObj[ingKey];
+        cukoRowsHtml += `
+          <div class="flex items-center justify-between text-[11px] py-0.5">
+            <span class="text-gray-700 font-medium">${ing.name}</span>
+            <div class="flex items-center gap-1">
+              <input type="number" min="0" id="recipe_gram_cuko_${ingKey}" value="${val}" class="w-14 text-center font-bold bg-white border border-orange-200 rounded py-0.5">
+              <span class="text-[9px] text-gray-400 w-8">${ing.unit || 'gr'}</span>
+              <button onclick="removeIngredientFromCuko('${ingKey}')" class="text-red-500 font-bold px-1 text-xs">✕</button>
+            </div>
+          </div>
+        `;
+      }
+
+      let cukoAvailableOpts = '';
+      for (let k in masterIngredients) {
+        if (!cukoRecipeObj[k]) {
+          cukoAvailableOpts += `<option value="${k}">${masterIngredients[k].name}</option>`;
+        }
+      }
+
+      cukoCard.innerHTML = `
+        <div onclick="toggleRecipeAccordion('cuko')" class="flex justify-between items-center p-2.5 bg-white cursor-pointer hover:bg-amber-50 transition">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-amber-950 text-xs">🥣 Resep Kuah Cuko</span>
+            <span class="text-[9px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-md">Total Modal Batch: IDR ${Math.round(cukoHpp).toLocaleString()}</span>
+          </div>
+          <span id="accordion_arrow_cuko" class="text-amber-900 font-bold transition-transform duration-200">▼</span>
+        </div>
+
+        <div id="accordion_content_cuko" class="hidden p-3 space-y-2.5 border-t border-amber-200 bg-white/60">
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-semibold text-gray-700">Untuk Porsi (Butir Pempek):</span>
+            <div class="flex items-center gap-1">
+              <input type="number" id="cuko_batch_yield" value="${cukoRecipeData.batchYieldPieces || 100}" class="w-14 text-center font-bold bg-white border border-orange-200 rounded py-0.5">
+              <span class="text-[10px] text-gray-500">pcs</span>
+            </div>
+          </div>
+
+          <div class="space-y-1 pl-0.5 max-h-40 overflow-y-auto hide-scrollbar">
+            ${cukoRowsHtml || '<div class="text-[10px] text-gray-400">Belum ada bahan cuko ditambahkan.</div>'}
+          </div>
+
+          <div class="flex gap-1.5 pt-1 border-t border-orange-100">
+            <select id="select_add_ing_cuko" class="flex-1 text-[10px] font-bold bg-white border border-orange-200 rounded px-1 py-1">
+              <option value="">-- Pilih Bahan untuk Ditambah --</option>
+              ${cukoAvailableOpts}
+            </select>
+            <button onclick="addIngredientToCuko()" class="px-2.5 py-1 bg-pempek text-white rounded font-bold text-[10px]">+ Tambah</button>
+          </div>
+
+          <button onclick="saveCukoRecipe()" class="w-full py-1.5 bg-amber-900 text-white rounded-lg text-xs font-bold shadow hover:bg-amber-950 transition">
+            Simpan Resep Cuko 💾
+          </button>
+        </div>
+      `;
+      accordionContainer.appendChild(cukoCard);
     }
 
     function addMasterIngredient() {
@@ -1353,14 +1547,8 @@
       let modalTotal = 0;
 
       filteredOrders.forEach(order => {
-        let recalculatedModal = 0;
-        Object.keys(order.counts || {}).forEach(menuId => {
-          const qty = order.counts[menuId];
-          const mObj = defaultMenu.find(m => m.id === menuId);
-          if (mObj) recalculatedModal += (mObj.hpp || 0) * qty;
-        });
-
-        order.modal = recalculatedModal;
+        const bags = order.bags || generateDefaultBags(order.counts);
+        order.modal = calculateTotalModalForOrder(order.counts, bags);
         order.profit = order.gross - order.modal;
 
         grossTotal += order.gross;
