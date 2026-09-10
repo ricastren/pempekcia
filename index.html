@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pempek Cia - PO & Kasir 🍡</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Fredoka -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { fredoka: ['Fredoka', 'sans-serif'] },
+          colors: {
+            cuko: '#5C2417',
+            pempek: '#FF9F45',
+            creamy: '#FFFBF5',
+            pastelPink: '#FFD1D1',
+            pastelYellow: '#FFEBB4',
+            pastelGreen: '#C1E1C1',
+            pastelOrange: '#FEE2B3'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background: radial-gradient(circle, #FFEBB4 0%, #FFD1D1 100%);
+      font-family: 'Fredoka', sans-serif;
+    }
+    .mobile-frame {
+      width: 410px;
+      height: 840px;
+      box-shadow: 0 20px 45px rgba(92, 36, 23, 0.22);
+    }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Layout Stiker Otomatis */
+    .sticker-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      background-color: #fff;
+    }
+    .sticker-bg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+    .sticker-val {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      font-family: 'Fredoka', sans-serif;
+      font-weight: 700;
+      color: #0b1c30;
+      text-align: center;
+      line-height: 1;
+    }
+    /* Ukuran font angka di oval */
+    .val-qty {
+      left: 41.0%;
+      font-size: 6pt;
+      width: 20px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Teks nama dinaikkan ke 83.0% dan ukuran 6pt */
+    .val-nama {
+      left: 25.4%;
+      top: 83.0%;
+      width: 38%;
+      font-size: 6pt;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: -0.2px;
+    }
+
+    /* Format Cetak Kertas A3 (5 Kolom ke Kanan) */
+    @media print {
+      @page {
+        size: A3 portrait;
+        margin: 6mm 5mm;
+      }
+      body {
+        background: white !important;
+        padding: 0 !important;
+        display: block !important;
+      }
+      body * {
+        visibility: hidden;
+      }
+      #batchPrintArea, #batchPrintArea * {
+        visibility: visible;
+      }
+      #batchPrintArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        display: grid !important;
+        grid-template-columns: repeat(5, 1fr) !important;
+        gap: 3.5mm !important;
+        padding: 0 !important;
+      }
+      .sticker-wrapper {
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        page-break-inside: avoid !important;
+        width: 53.5mm !important;
+        height: 53.5mm !important;
+        margin: 0 auto !important;
+      }
+      .val-qty {
+        font-size: 6pt !important;
+      }
+      .val-nama {
+        font-size: 6pt !important;
+        top: 83.0% !important;
+      }
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 select-none">
+
+  <!-- Frame Portrait 9:16 -->
+  <div class="mobile-frame bg-creamy rounded-[40px] border-4 border-amber-900/10 flex flex-col overflow-hidden relative">
+    
+    <!-- Top Header & Tanggal PO -->
+    <div class="pt-4 pb-2.5 px-5 bg-white/85 backdrop-blur-md border-b border-orange-100 space-y-2">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🍡</span>
+          <div>
+            <h1 class="font-bold text-lg text-amber-950 tracking-wide leading-tight">Pempek Cia</h1>
+            <span class="text-[10px] text-amber-800/70 font-medium">Tenggiri Asli • Gurih & Lezat</span>
+          </div>
+        </div>
+        <span class="text-[10px] bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full font-bold">✨ Sistem PO</span>
+      </div>
+
+      <!-- Batch Date Selector -->
+      <div class="flex items-center justify-between bg-orange-50/80 px-3 py-1.5 rounded-xl border border-orange-200">
+        <span class="text-[11px] font-bold text-amber-900 flex items-center gap-1">
+          📅 <span>Batch PO:</span>
+        </span>
+        <input type="date" id="poBatchDate" onchange="changePoDate()" class="bg-white text-xs font-semibold text-amber-950 px-2 py-0.5 rounded-lg border border-orange-200 focus:outline-none">
+      </div>
+    </div>
+
+    <!-- Main Container Body -->
+    <div class="flex-1 overflow-y-auto hide-scrollbar p-4 space-y-3.5 pb-20" id="mainContainer">
+
+      <!-- ================= TAB 1: INPUT ORDER PO ================= -->
+      <section id="tab-order" class="space-y-3">
+        <!-- Edit Mode Banner -->
+        <div id="editBanner" class="hidden bg-amber-100 border border-amber-300 text-amber-900 p-2.5 rounded-xl flex justify-between items-center text-xs">
+          <span class="font-bold">✏️ Mode Edit Pesanan</span>
+          <button onclick="cancelEditOrder()" class="text-[10px] bg-white px-2 py-1 rounded-md border border-amber-300 font-semibold text-red-600">Batal Edit</button>
+        </div>
+
+        <!-- Customer Info -->
+        <div class="bg-white p-3 rounded-2xl shadow-xs border border-orange-100">
+          <label class="text-xs font-bold text-amber-900/80 block mb-1">Nama Pemesan 👤</label>
+          <input type="text" id="custName" placeholder="Contoh: Bunda Alika" class="w-full text-xs bg-orange-50/50 border border-orange-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-300 font-medium">
+        </div>
+
+        <!-- Menu Selector -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between items-center">
+            <h2 class="text-xs font-bold text-amber-900 uppercase tracking-wider">Pilih Menu PO</h2>
+            <span class="text-[10px] text-amber-700 font-semibold bg-amber-100 px-2 py-0.5 rounded-md">Satuan & Paket</span>
+          </div>
+
+          <div id="menuContainer" class="space-y-2">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Summary & Button -->
+        <div class="bg-white p-3.5 rounded-2xl shadow-xs border border-orange-100 space-y-2.5">
+          <div class="flex justify-between items-center text-xs font-bold">
+            <span class="text-amber-900">Total Orderan Ini:</span>
+            <span class="text-pempek text-base font-bold" id="totalBelanjaTxt">IDR 0</span>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="resetCart()" class="flex-1 py-2 text-xs font-semibold bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 transition">Reset</button>
+            <button onclick="submitOrder()" id="btnSubmitOrder" class="w-full flex-2 py-2 text-xs font-bold bg-pempek text-white rounded-xl shadow-md shadow-orange-300/40 hover:bg-orange-500 transition">Simpan Pesanan Masuk 📥</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 2: REKAP DAPUR & PRODUKSI PO ================= -->
+      <section id="tab-recap" class="hidden space-y-3">
+        <!-- Summary PO Card -->
+        <div class="bg-gradient-to-br from-amber-500 to-pempek text-white p-3.5 rounded-2xl shadow-sm">
+          <div class="flex justify-between items-center">
+            <div>
+              <span class="text-[10px] uppercase font-bold tracking-wider opacity-90">Rekap PO Tanggal</span>
+              <div class="text-sm font-bold" id="recapBatchDateTxt">-</div>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] opacity-90">Total Pemesan</span>
+              <div class="text-base font-bold" id="recapCustomerCount">0 Orang</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recipe Production Breakdown -->
+        <div class="bg-white p-3 rounded-2xl border border-orange-100 shadow-xs space-y-2">
+          <div class="flex justify-between items-center border-b border-orange-100 pb-1.5">
+            <h3 class="text-xs font-bold text-amber-950 flex items-center gap-1">
+              <span>🥣</span> Total Butir Harus Dibuat
+            </h3>
+            <span class="text-[9px] text-orange-600 bg-orange-50 font-bold px-2 py-0.5 rounded-md">Otomatis Termasuk Paket</span>
+          </div>
+
+          <div id="productionItemsList" class="space-y-1.5 text-xs">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Tombol Buka Stiker Batch Template Asli -->
+        <div class="pt-1">
+          <button onclick="openBatchStickerModal()" class="w-full py-2.5 bg-amber-900 text-white rounded-2xl text-xs font-bold shadow-md hover:bg-amber-950 transition flex items-center justify-center gap-2">
+            <span>🏷️</span> Cetak Lembar Stiker A3 (Maks 5 ke Kanan)
+          </button>
+        </div>
+
+        <!-- Daftar Orderan Masuk Lengkap dengan Tombol Edit & Hapus -->
+        <div class="bg-white p-3 rounded-2xl border border-orange-100 shadow-xs">
+          <h3 class="text-xs font-bold text-amber-950 mb-2">Daftar Pemesan PO Ini</h3>
+          <div id="batchOrderList" class="space-y-2 max-h-56 overflow-y-auto hide-scrollbar text-xs">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 3: STOK GUDANG & PACKAGING ================= -->
+      <section id="tab-stock" class="hidden space-y-3">
+        <!-- Packaging Stock -->
+        <div>
+          <div class="flex justify-between items-center mb-1.5">
+            <h2 class="text-xs font-bold text-amber-950">🛍️ Kebutuhan & Stok Kantong</h2>
+            <span class="text-[10px] text-gray-400">*Bisa diedit</span>
+          </div>
+          <div id="packagingStockList" class="space-y-2">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Pempek Pieces Stock -->
+        <div class="pt-2">
+          <div class="flex justify-between items-center mb-1.5">
+            <h2 class="text-xs font-bold text-amber-950">📦 Stok Butir Pempek (Freezer)</h2>
+            <span class="text-[10px] text-gray-400">*Bisa diedit</span>
+          </div>
+          <div id="stockList" class="space-y-2">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <button onclick="saveStockChanges()" class="w-full py-2.5 bg-amber-900 text-white rounded-xl text-xs font-semibold shadow hover:bg-amber-950 transition">Simpan Semua Perubahan Stok</button>
+      </section>
+
+      <!-- ================= TAB 4: LABA & KAS ================= -->
+      <section id="tab-report" class="hidden space-y-3">
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl">
+            <span class="text-[10px] text-emerald-800 font-bold block">TOTAL GROSS (OMSET)</span>
+            <span class="text-sm font-bold text-emerald-950 mt-1 block" id="grossTxt">IDR 0</span>
+          </div>
+          <div class="bg-rose-50 border border-rose-200 p-3 rounded-2xl">
+            <span class="text-[10px] text-rose-800 font-bold block">TOTAL ESTIMASI MODAL</span>
+            <span class="text-sm font-bold text-rose-950 mt-1 block" id="modalTxt">IDR 0</span>
+          </div>
+        </div>
+
+        <div class="bg-amber-100/70 border border-amber-300 p-3.5 rounded-2xl">
+          <span class="text-xs font-bold text-amber-950 block">💰 Laba Bersih PO Ini</span>
+          <span class="text-xl font-bold text-amber-950 block mt-0.5" id="netProfitTxt">IDR 0</span>
+          <span class="text-[10px] text-amber-800/80 mt-1 block">*Gross dikurangi modal HPP per butir pempek</span>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-orange-100 px-4 py-2 flex justify-between items-center rounded-b-[36px]">
+      <button onclick="switchTab('order')" id="nav-order" class="flex flex-col items-center gap-0.5 text-pempek">
+        <span class="text-base">📝</span>
+        <span class="text-[10px] font-bold">Input PO</span>
+      </button>
+      <button onclick="switchTab('recap')" id="nav-recap" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek">
+        <span class="text-base">🥣</span>
+        <span class="text-[10px] font-bold">Dapur/PO</span>
+      </button>
+      <button onclick="switchTab('stock')" id="nav-stock" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek">
+        <span class="text-base">📦</span>
+        <span class="text-[10px] font-bold">Stok</span>
+      </button>
+      <button onclick="switchTab('report')" id="nav-report" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek">
+        <span class="text-base">💰</span>
+        <span class="text-[10px] font-bold">Laba</span>
+      </button>
+    </nav>
+
+    <!-- Modal Batch Sticker Preview -->
+    <div id="batchStickerModal" class="hidden absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 z-50">
+      <div class="bg-white rounded-3xl p-4 w-full h-[92%] flex flex-col shadow-2xl space-y-2.5">
+        <div class="flex justify-between items-center border-b pb-2">
+          <div>
+            <h3 class="text-xs font-bold text-amber-950">Pratinjau Stiker Lembar A3 🏷️</h3>
+            <span class="text-[10px] text-gray-400">Layout 5 kolom ke kanan (pas kertas A3)</span>
+          </div>
+          <button onclick="closeBatchSticker()" class="text-gray-400 hover:text-gray-600 font-bold text-base">✕</button>
+        </div>
+
+        <!-- Area Pratinjau Stiker -->
+        <div class="flex-1 overflow-y-auto hide-scrollbar p-1" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;" id="batchPrintArea">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <div class="flex gap-2 pt-1 border-t">
+          <button onclick="window.print()" class="flex-1 py-2 bg-pempek text-white text-xs font-bold rounded-xl shadow hover:bg-orange-500">🖨️ Cetak Lembar A3 (5 Stiker ke Kanan)</button>
+          <button onclick="closeBatchSticker()" class="py-2 px-4 bg-gray-100 text-gray-600 text-xs font-semibold rounded-xl">Tutup</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Menu Data
+    const defaultMenu = [
+      { id: 'cheese', name: 'Cheese Melt', price: 7000, hpp: 4000, isPackage: false },
+      { id: 'kulit', name: 'Kulit', price: 4000, hpp: 2200, isPackage: false },
+      { id: 'lenjer', name: 'Lenjer', price: 5000, hpp: 2800, isPackage: false },
+      { id: 'adaan', name: 'Adaan', price: 5000, hpp: 2800, isPackage: false },
+      { id: 'selam', name: 'Kapal Selam Mini', price: 6000, hpp: 3500, isPackage: false },
+      { 
+        id: 'pkt_favorit', 
+        name: 'Paket Favorit ⭐️', 
+        desc: '1 Selam Mini, 1 Lenjer, 1 Kulit, 2 Adaan',
+        price: 25000, 
+        hpp: 14100,
+        isPackage: true,
+        breakdown: { selam: 1, lenjer: 1, kulit: 1, adaan: 2 }
+      }
+    ];
+
+    let cart = {};
+    let editingOrderId = null;
+
+    // Stok Butir Pempek
+    let stock = JSON.parse(localStorage.getItem('pempek_cia_stock')) || {
+      cheese: 50,
+      kulit: 50,
+      lenjer: 50,
+      adaan: 50,
+      selam: 50
+    };
+
+    // Stok Packaging / Kantong
+    let packagingStock = JSON.parse(localStorage.getItem('pempek_cia_packaging')) || {
+      cuko_s: 50,
+      cuko_l: 50,
+      pempek_s: 50,
+      pempek_m: 50,
+      pempek_l: 50
+    };
+
+    let orders = JSON.parse(localStorage.getItem('pempek_cia_orders')) || [];
+
+    // Set Default PO Date Today
+    const todayStr = new Date().toISOString().split('T')[0];
+    document.getElementById('poBatchDate').value = todayStr;
+
+    function changePoDate() {
+      renderRecapAndReports();
+    }
+
+    function getCurrentPoDate() {
+      return document.getElementById('poBatchDate').value || todayStr;
+    }
+
+    // Fungsi Hitung Kebutuhan Packaging per Pesanan
+    function calculateOrderPackaging(counts) {
+      const c = counts || {};
+      const singlePieces = (c.selam || 0) + (c.lenjer || 0) + (c.adaan || 0) + (c.kulit || 0) + (c.cheese || 0);
+      const favPackages = c.pkt_favorit || 0;
+
+      let needed = {
+        cuko_s: 0,
+        cuko_l: 0,
+        pempek_s: 0,
+        pempek_m: 0,
+        pempek_l: 0
+      };
+
+      // 1 Paket Favorit otomatis pakai 1 Kantong Pempek S & 1 Cuko S
+      if (favPackages > 0) {
+        needed.pempek_s += favPackages;
+        needed.cuko_s += favPackages;
+      }
+
+      // Hitung aturan kantong untuk pempek satuan
+      if (singlePieces > 0) {
+        let remaining = singlePieces;
+        while (remaining > 0) {
+          if (remaining <= 5) {
+            needed.pempek_s += 1;
+            needed.cuko_s += 1;
+            remaining -= 5;
+          } else if (remaining <= 10) {
+            needed.pempek_m += 1;
+            needed.cuko_l += 1;
+            remaining -= 10;
+          } else {
+            // 11 - 15 butir pakai Kantong L, 1 Cuko S + 1 Cuko L
+            needed.pempek_l += 1;
+            needed.cuko_s += 1;
+            needed.cuko_l += 1;
+            remaining -= 15;
+          }
+        }
+      }
+
+      return needed;
+    }
+
+    function getPackagingLabel(needed) {
+      const p = [];
+      if (needed.pempek_s) p.push(`Pempek S (${needed.pempek_s})`);
+      if (needed.pempek_m) p.push(`Pempek M (${needed.pempek_m})`);
+      if (needed.pempek_l) p.push(`Pempek L (${needed.pempek_l})`);
+      
+      const c = [];
+      if (needed.cuko_s) c.push(`Cuko S (${needed.cuko_s})`);
+      if (needed.cuko_l) c.push(`Cuko L (${needed.cuko_l})`);
+
+      const res = [];
+      if (p.length) res.push(`🛍️ ${p.join(', ')}`);
+      if (c.length) res.push(`🍶 ${c.join(', ')}`);
+      return res.join(' • ');
+    }
+
+    // Render Menu Items
+    function renderMenu() {
+      const container = document.getElementById('menuContainer');
+      container.innerHTML = '';
+
+      defaultMenu.forEach(item => {
+        const qty = cart[item.id] || 0;
+        const div = document.createElement('div');
+        div.className = `p-2.5 rounded-2xl border transition flex items-center justify-between ${
+          item.isPackage ? 'bg-amber-50/80 border-amber-200' : 'bg-white border-orange-100'
+        }`;
+
+        div.innerHTML = `
+          <div>
+            <div class="font-bold text-xs text-amber-950">${item.name}</div>
+            ${item.desc ? `<div class="text-[9px] text-amber-800/70">${item.desc}</div>` : ''}
+            <div class="text-xs font-semibold text-pempek mt-0.5">IDR ${item.price.toLocaleString()}</div>
+          </div>
+          <div class="flex items-center gap-2 bg-orange-50 p-1 rounded-xl border border-orange-200">
+            <button onclick="updateCart('${item.id}', -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded-lg text-amber-900 text-xs font-bold shadow-xs hover:bg-orange-100">-</button>
+            <span class="w-5 text-center text-xs font-bold text-amber-950">${qty}</span>
+            <button onclick="updateCart('${item.id}', 1)" class="w-6 h-6 flex items-center justify-center bg-pempek text-white rounded-lg text-xs font-bold shadow-xs hover:bg-orange-500">+</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+      calculateTotal();
+    }
+
+    function updateCart(id, delta) {
+      cart[id] = (cart[id] || 0) + delta;
+      if (cart[id] <= 0) delete cart[id];
+      renderMenu();
+    }
+
+    function resetCart() {
+      cart = {};
+      editingOrderId = null;
+      document.getElementById('custName').value = '';
+      document.getElementById('editBanner').classList.add('hidden');
+      document.getElementById('btnSubmitOrder').innerText = 'Simpan Pesanan Masuk 📥';
+      renderMenu();
+    }
+
+    function calculateTotal() {
+      let total = 0;
+      Object.keys(cart).forEach(id => {
+        const item = defaultMenu.find(m => m.id === id);
+        if (item) total += item.price * cart[id];
+      });
+      document.getElementById('totalBelanjaTxt').innerText = `IDR ${total.toLocaleString()}`;
+      return total;
+    }
+
+    // Simpan Order (Baru atau Update)
+    function submitOrder() {
+      const cust = document.getElementById('custName').value.trim();
+      const itemsInCart = Object.keys(cart);
+
+      if (!cust) {
+        alert('Tolong isi nama pemesannya dulu ya!');
+        return;
+      }
+      if (itemsInCart.length === 0) {
+        alert('Pilih minimal 1 menu pempek.');
+        return;
+      }
+
+      let gross = 0;
+      let modal = 0;
+      let orderSummaryCounts = {
+        selam: 0,
+        lenjer: 0,
+        adaan: 0,
+        kulit: 0,
+        cheese: 0,
+        pkt_favorit: 0
+      };
+
+      itemsInCart.forEach(id => {
+        const item = defaultMenu.find(m => m.id === id);
+        const qty = cart[id];
+        gross += item.price * qty;
+        modal += item.hpp * qty;
+        orderSummaryCounts[id] = qty;
+
+        // Potong stok butir
+        if (item.isPackage) {
+          for (let p in item.breakdown) {
+            stock[p] = Math.max(0, (stock[p] || 0) - (item.breakdown[p] * qty));
+          }
+        } else {
+          stock[id] = Math.max(0, (stock[id] || 0) - qty);
+        }
+      });
+
+      // Hitung dan potong kantong packaging
+      const packagingUsed = calculateOrderPackaging(orderSummaryCounts);
+      for (let key in packagingUsed) {
+        packagingStock[key] = Math.max(0, (packagingStock[key] || 0) - packagingUsed[key]);
+      }
+
+      const orderData = {
+        id: editingOrderId || ('ORD-' + Date.now()),
+        poDate: getCurrentPoDate(),
+        cust: cust,
+        counts: orderSummaryCounts,
+        packaging: packagingUsed,
+        gross: gross,
+        modal: modal,
+        profit: gross - modal
+      };
+
+      orders.push(orderData);
+      localStorage.setItem('pempek_cia_orders', JSON.stringify(orders));
+      localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
+      localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
+
+      alert(`✅ Pesanan Kak ${cust} berhasil disimpan!`);
+
+      resetCart();
+      renderStock();
+      renderRecapAndReports();
+    }
+
+    // Fungsi Hapus Orderan (Stok & Packaging dikembalikan)
+    function deleteOrder(orderId) {
+      const idx = orders.findIndex(o => o.id === orderId);
+      if (idx === -1) return;
+
+      const order = orders[idx];
+      if (!confirm(`Yakin ingin menghapus pesanan atas nama "${order.cust}"? Stok pempek & kemasan akan otomatis dikembalikan.`)) {
+        return;
+      }
+
+      // 1. Kembalikan stok butir pempek
+      for (let id in order.counts) {
+        const qty = order.counts[id];
+        if (qty > 0) {
+          const item = defaultMenu.find(m => m.id === id);
+          if (item.isPackage) {
+            for (let p in item.breakdown) {
+              stock[p] = (stock[p] || 0) + (item.breakdown[p] * qty);
+            }
+          } else {
+            stock[id] = (stock[id] || 0) + qty;
+          }
+        }
+      }
+
+      // 2. Kembalikan stok packaging
+      const pack = order.packaging || calculateOrderPackaging(order.counts);
+      for (let k in pack) {
+        packagingStock[k] = (packagingStock[k] || 0) + pack[k];
+      }
+
+      // 3. Hapus order dari database
+      orders.splice(idx, 1);
+      localStorage.setItem('pempek_cia_orders', JSON.stringify(orders));
+      localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
+      localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
+
+      renderStock();
+      renderRecapAndReports();
+    }
+
+    // Fungsi Edit Orderan
+    function editOrder(orderId) {
+      const idx = orders.findIndex(o => o.id === orderId);
+      if (idx === -1) return;
+
+      const order = orders[idx];
+
+      // Kembalikan stok lama sebelum diubah ulang
+      for (let id in order.counts) {
+        const qty = order.counts[id];
+        if (qty > 0) {
+          const item = defaultMenu.find(m => m.id === id);
+          if (item.isPackage) {
+            for (let p in item.breakdown) {
+              stock[p] = (stock[p] || 0) + (item.breakdown[p] * qty);
+            }
+          } else {
+            stock[id] = (stock[id] || 0) + qty;
+          }
+        }
+      }
+      const pack = order.packaging || calculateOrderPackaging(order.counts);
+      for (let k in pack) {
+        packagingStock[k] = (packagingStock[k] || 0) + pack[k];
+      }
+
+      // Hapus sementara dari daftar pesanan
+      orders.splice(idx, 1);
+      localStorage.setItem('pempek_cia_orders', JSON.stringify(orders));
+      localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
+      localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
+
+      // Isi form kasir dengan data lama
+      cart = { ...order.counts };
+      for (let k in cart) {
+        if (cart[k] === 0) delete cart[k];
+      }
+      document.getElementById('custName').value = order.cust;
+      editingOrderId = order.id;
+
+      // Ubah UI kasir ke mode edit
+      document.getElementById('editBanner').classList.remove('hidden');
+      document.getElementById('btnSubmitOrder').innerText = 'Perbarui Pesanan 🔄';
+
+      switchTab('order');
+      renderMenu();
+      renderStock();
+      renderRecapAndReports();
+    }
+
+    function cancelEditOrder() {
+      resetCart();
+    }
+
+    // Render Dapur Recap & Reports
+    function renderRecapAndReports() {
+      const currentPo = getCurrentPoDate();
+      document.getElementById('recapBatchDateTxt').innerText = currentPo;
+
+      const filteredOrders = orders.filter(o => o.poDate === currentPo);
+      document.getElementById('recapCustomerCount').innerText = `${filteredOrders.length} Orang`;
+
+      const piecesTotal = {
+        selam: 0,
+        lenjer: 0,
+        adaan: 0,
+        kulit: 0,
+        cheese: 0
+      };
+
+      let grossTotal = 0;
+      let modalTotal = 0;
+
+      filteredOrders.forEach(order => {
+        grossTotal += order.gross;
+        modalTotal += order.modal;
+
+        piecesTotal.cheese += (order.counts.cheese || 0);
+        piecesTotal.kulit += (order.counts.kulit || 0) + ((order.counts.pkt_favorit || 0) * 1);
+        piecesTotal.lenjer += (order.counts.lenjer || 0) + ((order.counts.pkt_favorit || 0) * 1);
+        piecesTotal.adaan += (order.counts.adaan || 0) + ((order.counts.pkt_favorit || 0) * 2);
+        piecesTotal.selam += (order.counts.selam || 0) + ((order.counts.pkt_favorit || 0) * 1);
+      });
+
+      const productionContainer = document.getElementById('productionItemsList');
+      const itemNames = {
+        selam: 'Kapal Selam Mini 🥚',
+        lenjer: 'Lenjer Gurih 🥖',
+        adaan: 'Adaan Bawang 🧅',
+        kulit: 'Kulit Crispy 🤎',
+        cheese: 'Cheese Melt 🧀'
+      };
+
+      productionContainer.innerHTML = Object.keys(piecesTotal).map(k => `
+        <div class="flex justify-between items-center bg-orange-50/70 px-3 py-1.5 rounded-xl border border-orange-100">
+          <span class="font-semibold text-amber-950">${itemNames[k]}</span>
+          <span class="font-bold text-amber-950 bg-white px-2.5 py-0.5 rounded-lg border border-orange-200">
+            ${piecesTotal[k]} <span class="text-[10px] text-gray-500 font-normal">butir</span>
+          </span>
+        </div>
+      `).join('');
+
+      // Render Order List di PO dengan Tombol Edit & Hapus
+      const batchListContainer = document.getElementById('batchOrderList');
+      if (filteredOrders.length === 0) {
+        batchListContainer.innerHTML = `<div class="text-center text-gray-400 py-3 text-[11px]">Belum ada pesanan di tanggal PO ini</div>`;
+      } else {
+        batchListContainer.innerHTML = filteredOrders.map((o, idx) => {
+          const itemSummary = [];
+          if (o.counts.selam) itemSummary.push(`Selam (${o.counts.selam})`);
+          if (o.counts.lenjer) itemSummary.push(`Lenjer (${o.counts.lenjer})`);
+          if (o.counts.adaan) itemSummary.push(`Adaan (${o.counts.adaan})`);
+          if (o.counts.kulit) itemSummary.push(`Kulit (${o.counts.kulit})`);
+          if (o.counts.cheese) itemSummary.push(`Cheese (${o.counts.cheese})`);
+          if (o.counts.pkt_favorit) itemSummary.push(`Paket Favorit (${o.counts.pkt_favorit})`);
+
+          const packInfo = o.packaging || calculateOrderPackaging(o.counts);
+          const packLabel = getPackagingLabel(packInfo);
+
+          return `
+            <div class="p-2.5 bg-orange-50/50 rounded-xl border border-orange-200/80 space-y-1">
+              <div class="flex justify-between items-center">
+                <span class="font-bold text-amber-950">${idx + 1}. ${o.cust}</span>
+                <span class="text-pempek font-bold">IDR ${o.gross.toLocaleString()}</span>
+              </div>
+              <div class="text-[10px] text-gray-600 font-medium">
+                ${itemSummary.join(', ')}
+              </div>
+              <div class="text-[9.5px] text-amber-800 bg-orange-100/60 px-2 py-0.5 rounded-md inline-block">
+                ${packLabel || 'Tanpa Kemasan Tambahan'}
+              </div>
+              <div class="flex justify-end gap-1.5 pt-1 border-t border-orange-100">
+                <button onclick="editOrder('${o.id}')" class="px-2 py-0.5 bg-white border border-orange-200 text-amber-900 rounded-md text-[10px] font-bold hover:bg-orange-100">✏️ Edit</button>
+                <button onclick="deleteOrder('${o.id}')" class="px-2 py-0.5 bg-red-50 border border-red-200 text-red-600 rounded-md text-[10px] font-bold hover:bg-red-100">🗑️ Hapus</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Render Profit
+      document.getElementById('grossTxt').innerText = `IDR ${grossTotal.toLocaleString()}`;
+      document.getElementById('modalTxt').innerText = `IDR ${modalTotal.toLocaleString()}`;
+      document.getElementById('netProfitTxt').innerText = `IDR ${(grossTotal - modalTotal).toLocaleString()}`;
+    }
+
+    // Render Batch Sticker Modal Menggunakan File Gambar Lokal (sticker.png)
+    function openBatchStickerModal() {
+      const currentPo = getCurrentPoDate();
+      const filteredOrders = orders.filter(o => o.poDate === currentPo);
+
+      if (filteredOrders.length === 0) {
+        alert('Belum ada pesanan untuk dicetak di batch PO ini!');
+        return;
+      }
+
+      const container = document.getElementById('batchPrintArea');
+      container.innerHTML = filteredOrders.map(order => {
+        const c = order.counts || {};
+        return `
+          <div class="sticker-wrapper">
+            <img src="sticker.png" class="sticker-bg" alt="Stiker Pempek Cia" />
+            
+            <!-- Value Qty di Oval Box -->
+            <div class="sticker-val val-qty" style="top: 43.95%;">${c.selam > 0 ? c.selam : ''}</div>
+            <div class="sticker-val val-qty" style="top: 48.88%;">${c.lenjer > 0 ? c.lenjer : ''}</div>
+            <div class="sticker-val val-qty" style="top: 53.91%;">${c.adaan > 0 ? c.adaan : ''}</div>
+            <div class="sticker-val val-qty" style="top: 58.79%;">${c.kulit > 0 ? c.kulit : ''}</div>
+            <div class="sticker-val val-qty" style="top: 63.87%;">${c.cheese > 0 ? c.cheese : ''}</div>
+            <div class="sticker-val val-qty" style="top: 69.04%;">${c.pkt_favorit > 0 ? c.pkt_favorit : ''}</div>
+
+            <!-- Nama Pembeli di Kolom NAMA -->
+            <div class="sticker-val val-nama">${order.cust}</div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('batchStickerModal').classList.remove('hidden');
+    }
+
+    function closeBatchSticker() {
+      document.getElementById('batchStickerModal').classList.add('hidden');
+    }
+
+    // Stock Management (Packaging & Butir Pempek)
+    function renderStock() {
+      // 1. Render Packaging Stock
+      const packContainer = document.getElementById('packagingStockList');
+      packContainer.innerHTML = '';
+      const packLabels = {
+        cuko_s: 'Kantong Cuko S',
+        cuko_l: 'Kantong Cuko L',
+        pempek_s: 'Kantong Pempek S (≤5 pcs)',
+        pempek_m: 'Kantong Pempek M (6-10 pcs)',
+        pempek_l: 'Kantong Pempek L (11-15 pcs)'
+      };
+
+      for (let key in packLabels) {
+        const qty = packagingStock[key] || 0;
+        const row = document.createElement('div');
+        row.className = 'flex justify-between items-center bg-white p-2 rounded-xl border border-orange-100 shadow-xs';
+        row.innerHTML = `
+          <span class="text-xs font-semibold text-amber-950">${packLabels[key]}</span>
+          <div class="flex items-center gap-1.5">
+            <input type="number" id="input_pack_${key}" value="${qty}" class="w-16 text-center text-xs font-bold bg-orange-50/50 border border-orange-200 rounded-lg p-1">
+            <span class="text-[10px] text-gray-400">lbr</span>
+          </div>
+        `;
+        packContainer.appendChild(row);
+      }
+
+      // 2. Render Pempek Pieces Stock
+      const container = document.getElementById('stockList');
+      container.innerHTML = '';
+      const singleItems = defaultMenu.filter(m => !m.isPackage);
+
+      singleItems.forEach(item => {
+        const qty = stock[item.id] || 0;
+        const row = document.createElement('div');
+        row.className = 'flex justify-between items-center bg-white p-2 rounded-xl border border-orange-100 shadow-xs';
+        row.innerHTML = `
+          <span class="text-xs font-semibold text-amber-950">${item.name}</span>
+          <div class="flex items-center gap-1.5">
+            <input type="number" id="input_stock_${item.id}" value="${qty}" class="w-16 text-center text-xs font-bold bg-orange-50/50 border border-orange-200 rounded-lg p-1">
+            <span class="text-[10px] text-gray-400">pcs</span>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function saveStockChanges() {
+      // Simpan Packaging
+      ['cuko_s', 'cuko_l', 'pempek_s', 'pempek_m', 'pempek_l'].forEach(key => {
+        const val = parseInt(document.getElementById(`input_pack_${key}`).value) || 0;
+        packagingStock[key] = val;
+      });
+
+      // Simpan Pempek Butir
+      const singleItems = defaultMenu.filter(m => !m.isPackage);
+      singleItems.forEach(item => {
+        const val = parseInt(document.getElementById(`input_stock_${item.id}`).value) || 0;
+        stock[item.id] = val;
+      });
+
+      localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
+      localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
+      alert('Stok kemasan dan butir pempek berhasil disimpan! ✨');
+    }
+
+    // Tab Switcher
+    function switchTab(tab) {
+      ['order', 'recap', 'stock', 'report'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.add('hidden');
+        document.getElementById(`nav-${t}`).className = 'flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek';
+      });
+      document.getElementById(`tab-${tab}`).classList.remove('hidden');
+      document.getElementById(`nav-${tab}`).className = 'flex flex-col items-center gap-0.5 text-pempek';
+
+      if (tab === 'recap' || tab === 'report') {
+        renderRecapAndReports();
+      }
+    }
+
+    // Inisialisasi awal
+    renderMenu();
+    renderStock();
+    renderRecapAndReports();
+  </script>
+</body>
+</html>
