@@ -79,7 +79,7 @@
     <!-- Main Container Body -->
     <div class="flex-1 overflow-y-auto hide-scrollbar p-4 space-y-3 pb-20" id="mainContainer">
 
-      <!-- ================= TAB 1: INPUT ORDER PO ================= -->
+      <!-- ================= TAB 1: INPUT ORDER PO (WIZARD 2 STEP) ================= -->
       <section id="tab-order" class="space-y-3">
         <!-- Edit Mode Banner -->
         <div id="editBanner" class="hidden bg-amber-100 border border-amber-300 text-amber-900 p-2.5 rounded-xl flex justify-between items-center text-xs">
@@ -109,7 +109,7 @@
 
           <div class="space-y-1.5">
             <div class="flex justify-between items-center">
-              <h2 class="text-xs font-bold text-amber-900 uppercase tracking-wider">Pilih Menu PO</h2>
+              <h2 class="text-xs font-bold text-amber-950 uppercase tracking-wider">Pilih Menu PO</h2>
               <span class="text-[10px] text-amber-700 font-semibold bg-amber-100 px-2 py-0.5 rounded-md">Satuan & Paket</span>
             </div>
             <div id="menuContainer" class="space-y-2"></div>
@@ -220,7 +220,7 @@
         <!-- Tombol Cetak Stiker A3 -->
         <div class="pt-1">
           <button onclick="openA3SheetModal()" class="w-full py-2.5 bg-amber-900 text-white rounded-2xl text-xs font-bold shadow-md hover:bg-amber-950 transition flex items-center justify-center gap-2">
-            <span>📄</span> Download Lembar Stiker A3 (5 Kolom Utuh)
+            <span>📄</span> Download Lembar Stiker A3 (Full 35 Kotak)
           </button>
         </div>
       </section>
@@ -235,9 +235,7 @@
           <span id="orderListBadgeCount" class="text-[10px] bg-orange-100 text-pempek font-bold px-2 py-0.5 rounded-md">0 Pesanan</span>
         </div>
 
-        <div id="batchOrderList" class="space-y-2.5">
-          <!-- Rendered by JS -->
-        </div>
+        <div id="batchOrderList" class="space-y-2.5"></div>
       </section>
 
       <!-- ================= TAB 4: STOK GUDANG & PACKAGING ================= -->
@@ -326,7 +324,7 @@
       <div class="flex justify-between items-center border-b pb-2">
         <div>
           <h3 class="text-xs font-bold text-amber-950">Lembaran Kertas A3 Siap Cetak 📄</h3>
-          <span class="text-[10px] text-gray-400">5 kolom ke kanan • Ada garis batas potong putih</span>
+          <span class="text-[10px] text-gray-400">Penuh 35 stiker per lembar (Sisa diisi stiker kosong)</span>
         </div>
         <button onclick="closeA3SheetModal()" class="text-gray-400 hover:text-gray-600 font-bold text-base">✕</button>
       </div>
@@ -1123,7 +1121,6 @@
         piecesTotal.selam += (order.counts.selam || 0) + ((order.counts.pkt_favorit || 0) * 1);
       });
 
-      // Hitung Grand Total Butir Pempek
       const grandTotalPieces = Object.values(piecesTotal).reduce((a, b) => a + b, 0);
       document.getElementById('grandTotalPiecesTxt').innerText = `${grandTotalPieces.toLocaleString()} Butir`;
 
@@ -1145,7 +1142,6 @@
         </div>
       `).join('');
 
-      // Render Daftar Pesanan di Tab Mandiri
       const batchListContainer = document.getElementById('batchOrderList');
       if (filteredOrders.length === 0) {
         batchListContainer.innerHTML = `<div class="text-center text-gray-400 py-10 text-xs">Belum ada pesanan di tanggal PO ini</div>`;
@@ -1193,6 +1189,7 @@
       document.getElementById('netProfitTxt').innerText = `IDR ${(grossTotal - modalTotal).toLocaleString()}`;
     }
 
+    // Generator Lembaran Kertas A3: PENUH 35 KOTAK STIKER PER LEMBAR
     function generateA3FullSheet(pageStickers, pageIndex, totalPages, bgImg, callback) {
       const A3_WIDTH = 3508;
       const A3_HEIGHT = 4960;
@@ -1206,50 +1203,58 @@
 
       const COLS = 5;
       const ROWS = 7;
+      const TOTAL_SLOTS = COLS * ROWS; // 35 kotak
       const MARGIN_X = 114;
       const MARGIN_Y = 110;
       const GAP = 40;
       const STICKER_SIZE = 624;
 
-      pageStickers.forEach((stk, idx) => {
-        if (idx >= COLS * ROWS) return;
-
+      // Loop sebanyak 35 slot penuh
+      for (let idx = 0; idx < TOTAL_SLOTS; idx++) {
         const col = idx % COLS;
         const row = Math.floor(idx / COLS);
         const x = MARGIN_X + col * (STICKER_SIZE + GAP);
         const y = MARGIN_Y + row * (STICKER_SIZE + GAP);
 
+        // 1. Selalu gambar background stiker di semua 35 slot
         ctx.drawImage(bgImg, x, y, STICKER_SIZE, STICKER_SIZE);
 
+        // 2. Garis potong
         ctx.strokeStyle = "#e2e8f0";
         ctx.lineWidth = 2;
         ctx.strokeRect(x, y, STICKER_SIZE, STICKER_SIZE);
 
-        ctx.fillStyle = "#0d1b2a";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.font = "bold 15px 'Fredoka', sans-serif";
+        // 3. Jika slot ini milik pesanan, tulis angka dan nama
+        const stk = pageStickers[idx];
+        if (stk) {
+          ctx.fillStyle = "#0d1b2a";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.font = "bold 15px 'Fredoka', sans-serif";
 
-        const c = stk.counts || {};
-        const scale = STICKER_SIZE / 1024;
-        const ovals = [
-          { val: c.selam, cx: 419.5, cy: 450.0 },
-          { val: c.lenjer, cx: 419.5, cy: 500.5 },
-          { val: c.adaan, cx: 419.5, cy: 552.0 },
-          { val: c.kulit, cx: 419.5, cy: 602.0 },
-          { val: c.cheese, cx: 419.5, cy: 654.0 },
-          { val: c.pkt_favorit, cx: 419.5, cy: 707.0 }
-        ];
+          const c = stk.counts || {};
+          const scale = STICKER_SIZE / 1024;
+          const ovals = [
+            { val: c.selam, cx: 419.5, cy: 450.0 },
+            { val: c.lenjer, cx: 419.5, cy: 500.5 },
+            { val: c.adaan, cx: 419.5, cy: 552.0 },
+            { val: c.kulit, cx: 419.5, cy: 602.0 },
+            { val: c.cheese, cx: 419.5, cy: 654.0 },
+            { val: c.pkt_favorit, cx: 419.5, cy: 707.0 }
+          ];
 
-        ovals.forEach(o => {
-          if (o.val && o.val > 0) {
-            ctx.fillText(String(o.val), x + (o.cx * scale), y + (o.cy * scale) - 1);
-          }
-        });
+          ovals.forEach(o => {
+            if (o.val && o.val > 0) {
+              ctx.fillText(String(o.val), x + (o.cx * scale), y + (o.cy * scale) - 1);
+            }
+          });
 
-        ctx.font = "bold 17px 'Fredoka', sans-serif";
-        ctx.fillText(stk.labelNama, x + (260 * scale), y + (862 * scale));
-      });
+          // Tulis Nama Pemesan
+          ctx.font = "bold 17px 'Fredoka', sans-serif";
+          ctx.fillText(stk.labelNama, x + (260 * scale), y + (862 * scale));
+        }
+        // Jika tidak ada pesanan (slot kosong), stiker dibiarkan polos bersih siap tulis pulpen!
+      }
 
       ctx.fillStyle = "#94a3b8";
       ctx.font = "bold 24px 'Fredoka', sans-serif";
@@ -1297,7 +1302,7 @@
       const allStickers = getAllStickersForPO(filteredOrders);
 
       const container = document.getElementById('a3SheetContainer');
-      container.innerHTML = '<div class="text-center py-8 text-xs text-gray-500 font-semibold">Menyusun stiker lembaran A3...</div>';
+      container.innerHTML = '<div class="text-center py-8 text-xs text-gray-500 font-semibold">Menyusun stiker penuh ke lembaran A3...</div>';
       document.getElementById('a3SheetModal').classList.remove('hidden');
 
       const STICKERS_PER_PAGE = 35;
@@ -1311,13 +1316,18 @@
 
         for (let p = 0; p < totalPages; p++) {
           const pageStickers = allStickers.slice(p * STICKERS_PER_PAGE, (p + 1) * STICKERS_PER_PAGE);
+          const filledOrderCount = pageStickers.length;
+          const blankCount = STICKERS_PER_PAGE - filledOrderCount;
+
           generateA3FullSheet(pageStickers, p, totalPages, bgImg, function(pngUrl) {
             cardsHtml[p] = `
               <div class="bg-orange-50/70 p-3 rounded-2xl border border-orange-200 flex flex-col items-center gap-2">
                 <div class="w-full flex justify-between items-center px-1">
                   <div>
                     <span class="font-bold text-amber-950 text-xs">Lembar A3 #${p + 1}</span>
-                    <span class="text-[10px] text-gray-500 block">Isi ${pageStickers.length} stiker (${currentPo})</span>
+                    <span class="text-[10px] text-gray-500 block">
+                      ${filledOrderCount} Stiker Pesanan + ${blankCount} Stiker Kosong (Cadangan)
+                    </span>
                   </div>
                   <a href="${pngUrl}" download="Lembar_A3_PempekCia_${currentPo}_Part${p + 1}.png" class="text-xs bg-pempek text-white font-bold px-3 py-1.5 rounded-xl shadow-xs hover:bg-orange-500 flex items-center gap-1">
                     <span>⬇️</span> Unduh A3 (.PNG)
@@ -1433,7 +1443,6 @@
       alert('Stok berhasil diperbarui dan disinkronkan! ✨');
     }
 
-    // Nav Switcher 5 Tab
     function switchTab(tab) {
       ['order', 'recap', 'orders-list', 'stock', 'report'].forEach(t => {
         document.getElementById(`tab-${t}`).classList.add('hidden');
