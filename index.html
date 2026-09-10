@@ -267,15 +267,32 @@
         <button onclick="applyStockChanges()" class="w-full py-2.5 bg-amber-900 text-white rounded-xl text-xs font-semibold shadow hover:bg-amber-950 transition">Perbarui Stok Sekarang</button>
       </section>
 
-      <!-- ================= TAB 5: LABA & GRAFIK STACKED BAR PER TIPE PEMPEK ================= -->
-      <section id="tab-report" class="hidden space-y-3">
+      <!-- ================= TAB 5: LABA & PENGATURAN 2 BARIS ================= -->
+      <section id="tab-report" class="space-y-3">
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl">
+            <span class="text-[10px] text-emerald-800 block">TOTAL GROSS (OMSET)</span>
+            <span class="text-sm font-bold text-emerald-950 mt-1 block" id="grossTxt">IDR 0</span>
+          </div>
+          <div class="bg-rose-50 border border-rose-200 p-3 rounded-2xl">
+            <span class="text-[10px] text-rose-800 block">TOTAL ESTIMASI MODAL</span>
+            <span class="text-sm font-bold text-rose-950 mt-1 block" id="modalTxt">IDR 0</span>
+          </div>
+        </div>
+
+        <div class="bg-amber-100/70 border border-amber-300 p-3.5 rounded-2xl">
+          <span class="text-xs font-bold text-amber-950 block">💰 Laba Bersih PO Ini</span>
+          <span class="text-xl font-bold text-amber-950 block mt-0.5" id="netProfitTxt">IDR 0</span>
+          <span class="text-[10px] text-amber-800/80 mt-1 block">*Omset dikurangi modal otomatis (termasuk Cuko 50ml/100ml)</span>
+        </div>
+
+        <!-- Grafik Stacked Bar -->
         <div class="bg-white p-3.5 rounded-2xl border border-orange-100 shadow-xs space-y-3">
           <div class="flex justify-between items-center border-b border-orange-100 pb-1.5">
             <h3 class="text-xs font-bold text-amber-950">📊 Grafik Omset per Tipe Pempek (Antar Tanggal PO)</h3>
             <span class="text-[9px] text-orange-600 bg-orange-50 font-bold px-2 py-0.5 rounded-md">Stacked Bar</span>
           </div>
 
-          <!-- Legenda Warna Tipe Pempek -->
           <div class="flex flex-wrap gap-2 text-[9px] font-semibold pt-1">
             <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-orange-400 inline-block"></span> Kulit</span>
             <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-amber-500 inline-block"></span> Adaan</span>
@@ -285,7 +302,6 @@
             <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-purple-500 inline-block"></span> Pkt Favorit</span>
           </div>
 
-          <!-- Kontainer Grafik Batang Vertikal -->
           <div id="stackedBarChartContainer" class="h-56 flex items-end gap-3 pt-6 px-2 overflow-x-auto hide-scrollbar border-b border-orange-200 relative">
             <!-- Rendered by JS -->
           </div>
@@ -341,7 +357,7 @@
     <div class="bg-white rounded-3xl p-4 w-full max-w-sm h-[92%] flex flex-col shadow-2xl space-y-2.5">
       <div class="flex justify-between items-center border-b pb-2">
         <div>
-          <h3 id="modalSheetTitle" class="text-xs font-bold text-amber-950">Lembaran Stiker Siap Cetak 📄</h3>
+          <h3 id="modalSheetTitle" class="text-xs font-bold text-amber-950">Lembaran Kertas Siap Cetak 📄</h3>
           <span id="modalSheetSubtitle" class="text-[10px] text-gray-400">Sisa slot diisi stiker cadangan polos</span>
         </div>
         <button onclick="closeSheetModal()" class="text-gray-400 hover:text-gray-600 font-bold text-base">✕</button>
@@ -1462,7 +1478,7 @@
         accordionContainer.appendChild(itemCard);
       });
 
-      // Render Resep Cuko
+      // Render Resep Cuko (Dengan Total ml)
       const cukoHpp = calculateBatchCost(cukoRecipeData.recipe);
       const cukoCard = document.createElement('div');
       cukoCard.className = 'bg-amber-50/50 rounded-xl border border-amber-200 overflow-hidden';
@@ -1528,468 +1544,6 @@
         </div>
       `;
       accordionContainer.appendChild(cukoCard);
-    }
-
-    function addMasterIngredient() {
-      const newKey = 'ing_' + Date.now();
-      masterIngredients[newKey] = { name: 'Bahan Baru', price: 10000, qty: 1000, unit: 'gram' };
-      renderMasterAndRecipes();
-    }
-
-    function deleteMasterIngredient(key) {
-      delete masterIngredients[key];
-      renderMasterAndRecipes();
-    }
-
-    function addMasterIngredient() {
-      const newKey = 'ing_' + Date.now();
-      masterIngredients[newKey] = { name: 'Bahan Baru', price: 10000, qty: 1000, unit: 'gram' };
-      renderMasterAndRecipes();
-    }
-
-    function deleteMasterIngredient(key) {
-      delete masterIngredients[key];
-      renderMasterAndRecipes();
-    }
-
-    // Render Grafik Stacked Bar & Rekap Laporan Lintas Tanggal PO
-    function renderStackedBarChart(poDatesMap) {
-      const chartContainer = document.getElementById('stackedBarChartContainer');
-      chartContainer.innerHTML = '';
-
-      const dates = Object.keys(poDatesMap).sort(); // Urutkan tanggal PO (Sumbu X)
-      if (dates.length === 0) {
-        chartContainer.innerHTML = '<div class="w-full text-center text-xs text-gray-400 py-12">Belum ada data transaksi PO</div>';
-        return;
-      }
-
-      // Cari max omset untuk skala tinggi bar (Sumbu Y)
-      let maxOmset = 100000;
-      dates.forEach(date => {
-        let total = Object.values(poDatesMap[date].types).reduce((a, b) => a + b, 0);
-        if (total > maxOmset) maxOmset = total;
-      });
-
-      const typeColors = {
-        kulit: 'bg-orange-400',
-        adaan: 'bg-amber-500',
-        lenjer: 'bg-yellow-500',
-        cheese: 'bg-emerald-500',
-        selam: 'bg-sky-500',
-        pkt_favorit: 'bg-purple-500'
-      };
-
-      dates.forEach(date => {
-        const batch = poDatesMap[date];
-        const totalBatchOmset = Object.values(batch.types).reduce((a, b) => a + b, 0);
-        const barHeightPercent = maxOmset > 0 ? Math.min(100, Math.round((totalBatchOmset / maxOmset) * 100)) : 0;
-
-        const colDiv = document.createElement('div');
-        colDiv.className = 'flex-1 h-full flex flex-col justify-end items-center gap-1 group relative';
-
-        // Tooltip sederhana saat disentuh
-        colDiv.innerHTML = `
-          <div class="text-[8px] font-bold text-gray-600 mb-0.5">Rp${(totalBatchOmset/1000).toFixed(0)}k</div>
-          <div class="w-full max-w-[28px] bg-gray-100 rounded-t-lg flex flex-col-reverse overflow-hidden transition-all duration-300" style="height: ${Math.max(15, barHeightPercent)}%;">
-            ${Object.keys(batch.types).map(tKey => {
-              const val = batch.types[tKey];
-              const p = totalBatchOmset > 0 ? (val / totalBatchOmset) * 100 : 0;
-              if (p <= 0) return '';
-              return `<div class="w-full ${typeColors[tKey] || 'bg-gray-400'}" style="height: ${p}%;" title="${tKey}: Rp${val.toLocaleString()}"></div>`;
-            }).join('')}
-          </div>
-          <span class="text-[8px] text-gray-500 font-semibold truncate max-w-[40px]">${date.substring(5)}</span>
-        `;
-        chartContainer.appendChild(colDiv);
-      });
-    }
-
-    function renderRecapAndReports() {
-      const currentPo = getCurrentPoDate();
-      document.getElementById('recapBatchDateTxt').innerText = currentPo;
-      document.getElementById('orderListPageSubtitle').innerText = `PO Tanggal: ${currentPo}`;
-
-      const filteredOrders = orders.filter(o => o.poDate === currentPo);
-      document.getElementById('recapCustomerCount').innerText = `${filteredOrders.length} Orang`;
-      document.getElementById('orderListBadgeCount').innerText = `${filteredOrders.length} Pesanan`;
-
-      const piecesTotal = { selam: 0, lenjer: 0, adaan: 0, kulit: 0, cheese: 0 };
-      let grossTotal = 0;
-      let modalTotal = 0;
-
-      // Grouping data untuk Grafik Stacked Bar dari SEMUA riwayat pesanan lintas tanggal PO
-      let poDatesMap = {};
-
-      orders.forEach(order => {
-        const bags = order.bags || generateDefaultBags(order.counts);
-        order.modal = calculateTotalModalForOrder(order.counts, bags);
-        order.profit = order.gross - order.modal;
-
-        // Data khusus tab Laba (lintas tanggal PO)
-        const dStr = order.poDate || 'Tanpa Tanggal';
-        if (!poDatesMap[dStr]) {
-          poDatesMap[dStr] = { types: { kulit: 0, adaan: 0, lenjer: 0, cheese: 0, selam: 0, pkt_favorit: 0 } };
-        }
-
-        // Hitung omset per tipe pempek di pesanan ini
-        Object.keys(order.counts || {}).forEach(mId => {
-          const qty = order.counts[mId] || 0;
-          const mObj = defaultMenu.find(m => m.id === mId);
-          if (mObj && qty > 0) {
-            poDatesMap[dStr].types[mId] = (poDatesMap[dStr].types[mId] || 0) + (mObj.price * qty);
-          }
-        });
-
-        // Akumulasi tab recap harian
-        if (order.poDate === currentPo) {
-          grossTotal += order.gross;
-          modalTotal += order.modal;
-
-          piecesTotal.cheese += (order.counts.cheese || 0);
-          piecesTotal.kulit += (order.counts.kulit || 0) + ((order.counts.pkt_favorit || 0) * 1);
-          piecesTotal.lenjer += (order.counts.lenjer || 0) + ((order.counts.pkt_favorit || 0) * 1);
-          piecesTotal.adaan += (order.counts.adaan || 0) + ((order.counts.pkt_favorit || 0) * 2);
-          piecesTotal.selam += (order.counts.selam || 0) + ((order.counts.pkt_favorit || 0) * 1);
-        }
-      });
-
-      const grandTotalPieces = Object.values(piecesTotal).reduce((a, b) => a + b, 0);
-      document.getElementById('grandTotalPiecesTxt').innerText = `${grandTotalPieces.toLocaleString()} Butir`;
-
-      const productionContainer = document.getElementById('productionItemsList');
-      const itemNames = {
-        selam: 'Kapal Selam Mini 🥚',
-        lenjer: 'Lenjer Gurih 🥖',
-        adaan: 'Adaan Bawang 🧅',
-        kulit: 'Kulit Crispy 🤎',
-        cheese: 'Cheese Melt 🧀'
-      };
-
-      productionContainer.innerHTML = Object.keys(piecesTotal).map(k => `
-        <div class="flex justify-between items-center bg-orange-50/70 px-3 py-1.5 rounded-xl border border-orange-100">
-          <span class="font-semibold text-amber-950">${itemNames[k]}</span>
-          <span class="font-bold text-amber-950 bg-white px-2.5 py-0.5 rounded-lg border border-orange-200">
-            ${piecesTotal[k]} <span class="text-[10px] text-gray-500 font-normal">butir</span>
-          </span>
-        </div>
-      `).join('');
-
-      const batchListContainer = document.getElementById('batchOrderList');
-      if (filteredOrders.length === 0) {
-        batchListContainer.innerHTML = `<div class="text-center text-gray-400 py-10 text-xs">Belum ada pesanan di tanggal PO ini</div>`;
-      } else {
-        batchListContainer.innerHTML = filteredOrders.map((o, idx) => {
-          const itemSummary = [];
-          if (o.counts.selam) itemSummary.push(`Selam (${o.counts.selam})`);
-          if (o.counts.lenjer) itemSummary.push(`Lenjer (${o.counts.lenjer})`);
-          if (o.counts.adaan) itemSummary.push(`Adaan (${o.counts.adaan})`);
-          if (o.counts.kulit) itemSummary.push(`Kulit (${o.counts.kulit})`);
-          if (o.counts.cheese) itemSummary.push(`Cheese (${o.counts.cheese})`);
-          if (o.counts.pkt_favorit) itemSummary.push(`Paket Favorit (${o.counts.pkt_favorit})`);
-
-          const bags = o.bags || generateDefaultBags(o.counts);
-          const packInfo = o.packaging || calculateOrderPackaging(o.counts, bags);
-          const packLabel = getPackagingLabel(packInfo);
-          const splitBadge = bags.length > 1 ? `<span class="bg-amber-200 text-amber-950 font-bold px-1.5 py-0.5 rounded text-[9px]">${bags.length} Kantong</span>` : '';
-
-          return `
-            <div class="p-3 bg-white rounded-2xl border border-orange-100 shadow-xs space-y-1.5">
-              <div class="flex justify-between items-center">
-                <div class="flex items-center gap-1.5">
-                  <span class="font-bold text-xs text-amber-950">${idx + 1}. ${o.cust}</span>
-                  ${splitBadge}
-                </div>
-                <span class="text-pempek font-bold text-xs">IDR ${o.gross.toLocaleString()}</span>
-              </div>
-              <div class="text-[11px] text-gray-600 font-medium leading-relaxed">
-                ${itemSummary.join(', ')}
-              </div>
-              <div class="text-[9.5px] text-amber-800 bg-orange-100/60 px-2 py-0.5 rounded-md inline-block">
-                ${packLabel || 'Tanpa Kemasan Tambahan'}
-              </div>
-              <div class="flex justify-end gap-1.5 pt-1.5 border-t border-orange-100">
-                <button onclick="editOrder('${o.id}')" class="px-2.5 py-1 bg-white border border-orange-200 text-amber-900 rounded-lg text-[10px] font-bold hover:bg-orange-100">✏️ Edit</button>
-                <button onclick="deleteOrder('${o.id}')" class="px-2.5 py-1 bg-red-50 border border-red-200 text-red-600 rounded-lg text-[10px] font-bold hover:bg-red-100">🗑️ Hapus</button>
-              </div>
-            </div>
-          `;
-        }).join('');
-      }
-
-      document.getElementById('grossTxt').innerText = `IDR ${grossTotal.toLocaleString()}`;
-      document.getElementById('modalTxt').innerText = `IDR ${modalTotal.toLocaleString()}`;
-      document.getElementById('netProfitTxt').innerText = `IDR ${(grossTotal - modalTotal).toLocaleString()}`;
-
-      renderStackedBarChart(poDatesMap);
-      renderMasterAndRecipes();
-    }
-
-    // Generator Lembar Universal (A3 & A4)
-    function generateFullSheet(formatType, pageStickers, pageIndex, totalPages, bgImg, callback) {
-      const isA3 = (formatType === 'A3');
-      const SHEET_WIDTH = isA3 ? 3508 : 2480;
-      const SHEET_HEIGHT = isA3 ? 4960 : 3508;
-      const COLS = isA3 ? 5 : 3;
-      const ROWS = isA3 ? 7 : 5;
-      const TOTAL_SLOTS = COLS * ROWS;
-      const STICKER_SIZE = isA3 ? 624 : 640;
-      const GAP = 40;
-
-      const totalGridW = (COLS * STICKER_SIZE) + ((COLS - 1) * GAP);
-      const totalGridH = (ROWS * STICKER_SIZE) + ((ROWS - 1) * GAP);
-      const MARGIN_X = Math.floor((SHEET_WIDTH - totalGridW) / 2);
-      const MARGIN_Y = Math.floor((SHEET_HEIGHT - totalGridH) / 2);
-
-      const canvas = document.createElement("canvas");
-      canvas.width = SHEET_WIDTH;
-      canvas.height = SHEET_HEIGHT;
-      const ctx = canvas.getContext("2d");
-
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, SHEET_WIDTH, SHEET_HEIGHT);
-
-      for (let idx = 0; idx < TOTAL_SLOTS; idx++) {
-        const col = idx % COLS;
-        const row = Math.floor(idx / COLS);
-        const x = MARGIN_X + col * (STICKER_SIZE + GAP);
-        const y = MARGIN_Y + row * (STICKER_SIZE + GAP);
-
-        ctx.drawImage(bgImg, x, y, STICKER_SIZE, STICKER_SIZE);
-
-        ctx.strokeStyle = "#e2e8f0";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, STICKER_SIZE, STICKER_SIZE);
-
-        const stk = pageStickers[idx];
-        if (stk) {
-          ctx.fillStyle = "#0d1b2a";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.font = "bold 15px 'Fredoka', sans-serif";
-
-          const c = stk.counts || {};
-          const scale = STICKER_SIZE / 1024;
-          const ovals = [
-            { val: c.selam, cx: 419.5, cy: 450.0 },
-            { val: c.lenjer, cx: 419.5, cy: 500.5 },
-            { val: c.adaan, cx: 419.5, cy: 552.0 },
-            { val: c.kulit, cx: 419.5, cy: 602.0 },
-            { val: c.cheese, cx: 419.5, cy: 654.0 },
-            { val: c.pkt_favorit, cx: 419.5, cy: 707.0 }
-          ];
-
-          ovals.forEach(o => {
-            if (o.val && o.val > 0) {
-              ctx.fillText(String(o.val), x + (o.cx * scale), y + (o.cy * scale) - 1);
-            }
-          });
-
-          ctx.font = "bold 17px 'Fredoka', sans-serif";
-          ctx.fillText(stk.labelNama, x + (260 * scale), y + (862 * scale));
-        }
-      }
-
-      ctx.fillStyle = "#94a3b8";
-      ctx.font = "bold 24px 'Fredoka', sans-serif";
-      ctx.textAlign = "right";
-      ctx.fillText(`Pempek Cia - Lembar ${formatType} (${pageIndex + 1}/${totalPages})`, SHEET_WIDTH - MARGIN_X, SHEET_HEIGHT - 35);
-
-      callback(canvas.toDataURL("image/png"));
-    }
-
-    function getAllStickersForPO(filteredOrders) {
-      let stickerList = [];
-
-      filteredOrders.forEach(o => {
-        const bags = (o.bags && o.bags.length > 0) ? o.bags : generateDefaultBags(o.counts);
-
-        if (bags.length > 1) {
-          bags.forEach((bag, bIdx) => {
-            const bCounts = bag.counts || bag;
-            stickerList.push({
-              labelNama: `${o.cust} [${bIdx + 1}/${bags.length}]`,
-              counts: bCounts
-            });
-          });
-        } else {
-          const singleCounts = bags.length === 1 ? (bags[0].counts || bags[0]) : o.counts;
-          stickerList.push({
-            labelNama: o.cust,
-            counts: singleCounts
-          });
-        }
-      });
-
-      return stickerList;
-    }
-
-    function openSheetModal(formatType = 'A3') {
-      const currentPo = getCurrentPoDate();
-      const filteredOrders = orders.filter(o => o.poDate === currentPo);
-
-      if (filteredOrders.length === 0) {
-        alert('Belum ada pesanan untuk dicetak di batch PO ini!');
-        return;
-      }
-
-      const allStickers = getAllStickersForPO(filteredOrders);
-      const isA3 = (formatType === 'A3');
-      const STICKERS_PER_PAGE = isA3 ? 35 : 15;
-      const totalPages = Math.ceil(allStickers.length / STICKERS_PER_PAGE);
-
-      document.getElementById('modalSheetTitle').innerText = `Lembaran Kertas ${formatType} Siap Cetak 📄`;
-      document.getElementById('modalSheetSubtitle').innerText = `${STICKERS_PER_PAGE} stiker per lembar (Sisa diisi stiker cadangan polos)`;
-
-      const container = document.getElementById('sheetContainer');
-      container.innerHTML = `<div class="text-center py-8 text-xs text-gray-500 font-semibold">Menyusun stiker lembaran ${formatType}...</div>`;
-      document.getElementById('sheetModal').classList.remove('hidden');
-
-      const bgImg = new Image();
-      bgImg.src = "sticker.png";
-      bgImg.onload = function() {
-        let cardsHtml = [];
-        let completed = 0;
-
-        for (let p = 0; p < totalPages; p++) {
-          const pageStickers = allStickers.slice(p * STICKERS_PER_PAGE, (p + 1) * STICKERS_PER_PAGE);
-          const filledOrderCount = pageStickers.length;
-          const blankCount = STICKERS_PER_PAGE - filledOrderCount;
-
-          generateFullSheet(formatType, pageStickers, p, totalPages, bgImg, function(pngUrl) {
-            cardsHtml[p] = `
-              <div class="bg-orange-50/70 p-3 rounded-2xl border border-orange-200 flex flex-col items-center gap-2">
-                <div class="w-full flex justify-between items-center px-1">
-                  <div>
-                    <span class="font-bold text-amber-950 text-xs">Lembar ${formatType} #${p + 1}</span>
-                    <span class="text-[10px] text-gray-500 block">
-                      ${filledOrderCount} Stiker Pesanan + ${blankCount} Stiker Kosong
-                    </span>
-                  </div>
-                  <a href="${pngUrl}" download="Lembar_${formatType}_PempekCia_${currentPo}_Part${p + 1}.png" class="text-xs bg-pempek text-white font-bold px-3 py-1.5 rounded-xl shadow-xs hover:bg-orange-500 flex items-center gap-1">
-                    <span>⬇️</span> Utuh ${formatType} (.PNG)
-                  </a>
-                </div>
-                <img src="${pngUrl}" class="w-full h-auto rounded-lg shadow-sm border border-orange-200 bg-white" alt="Lembar ${formatType} Part ${p + 1}" />
-              </div>
-            `;
-            completed++;
-            if (completed === totalPages) {
-              container.innerHTML = cardsHtml.join('');
-            }
-          });
-        }
-      };
-    }
-
-    function closeSheetModal() {
-      document.getElementById('sheetModal').classList.add('hidden');
-    }
-
-    function renderStock() {
-      const packContainer = document.getElementById('packagingStockList');
-      packContainer.innerHTML = '';
-      const packLabels = {
-        cuko_s: 'Kantong Cuko S (50ml)',
-        cuko_l: 'Kantong Cuko L (100ml)',
-        pempek_s: 'Kantong Pempek S (≤5 pcs)',
-        pempek_m: 'Kantong Pempek M (6-10 pcs)',
-        pempek_l: 'Kantong Pempek L (11-15 pcs)'
-      };
-
-      for (let key in packLabels) {
-        const currentVal = packagingStock[key] || 0;
-        const isNegative = currentVal < 0;
-        const colorClass = isNegative ? 'text-red-600 bg-red-50 border-red-200' : 'text-amber-950 bg-orange-50/50 border-orange-100';
-
-        const row = document.createElement('div');
-        row.className = 'flex justify-between items-center bg-white p-2 rounded-xl border border-orange-100 shadow-xs';
-        row.innerHTML = `
-          <span class="text-xs font-semibold text-amber-950">${packLabels[key]}</span>
-          <div class="flex items-center gap-2">
-            <span class="w-12 text-center text-xs font-bold py-1 px-1.5 rounded-lg border ${colorClass}">
-              ${currentVal}
-            </span>
-            <input type="number" id="adj_pack_${key}" placeholder="0" class="w-14 text-center text-xs font-bold bg-white border border-amber-300 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-amber-500">
-            <span class="text-[10px] text-gray-400 w-5">lbr</span>
-          </div>
-        `;
-        packContainer.appendChild(row);
-      }
-
-      const container = document.getElementById('stockList');
-      container.innerHTML = '';
-      const singleItems = defaultMenu.filter(m => !m.isPackage);
-
-      singleItems.forEach(item => {
-        const currentVal = stock[item.id] || 0;
-        const isNegative = currentVal < 0;
-        const colorClass = isNegative ? 'text-red-600 bg-red-50 border-red-200' : 'text-amber-950 bg-orange-50/50 border-orange-100';
-
-        const row = document.createElement('div');
-        row.className = 'flex justify-between items-center bg-white p-2.5 rounded-xl border border-orange-100 shadow-xs';
-        row.innerHTML = `
-          <span class="text-xs font-semibold text-amber-950">${item.name}</span>
-          <div class="flex items-center gap-2">
-            <span class="w-12 text-center text-xs font-bold py-1 px-1.5 rounded-lg border ${colorClass}">
-              ${currentVal}
-            </span>
-            <input type="number" id="adj_stock_${item.id}" placeholder="0" class="w-14 text-center text-xs font-bold bg-white border border-amber-300 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-amber-500">
-            <span class="text-[10px] text-gray-400 w-5">pcs</span>
-          </div>
-        `;
-        container.appendChild(row);
-      });
-    }
-
-    function applyStockChanges() {
-      let anyChange = false;
-
-      ['cuko_s', 'cuko_l', 'pempek_s', 'pempek_m', 'pempek_l'].forEach(key => {
-        const el = document.getElementById(`adj_pack_${key}`);
-        const delta = parseInt(el.value);
-        if (!isNaN(delta) && delta !== 0) {
-          packagingStock[key] = (packagingStock[key] || 0) + delta;
-          el.value = '';
-          anyChange = true;
-        }
-      });
-
-      const singleItems = defaultMenu.filter(m => !m.isPackage);
-      singleItems.forEach(item => {
-        const el = document.getElementById(`adj_stock_${item.id}`);
-        const delta = parseInt(el.value);
-        if (!isNaN(delta) && delta !== 0) {
-          stock[item.id] = (stock[item.id] || 0) + delta;
-          el.value = '';
-          anyChange = true;
-        }
-      });
-
-      if (!anyChange) {
-        alert('Masukkan angka penambahan (+) atau pengurangan (-) di kolom yang tersedia terlebih dahulu.');
-        return;
-      }
-
-      localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
-      localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
-
-      syncToCloud();
-      renderStock();
-
-      alert('Stok berhasil diperbarui dan disinkronkan! ✨');
-    }
-
-    function switchTab(tab) {
-      ['order', 'recap', 'orders-list', 'stock', 'report'].forEach(t => {
-        document.getElementById(`tab-${t}`).classList.add('hidden');
-        document.getElementById(`nav-${t}`).className = 'flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek flex-1';
-      });
-      document.getElementById(`tab-${tab}`).classList.remove('hidden');
-      document.getElementById(`nav-${tab}`).className = 'flex flex-col items-center gap-0.5 text-pempek flex-1';
-
-      if (tab === 'recap' || tab === 'orders-list' || tab === 'report') {
-        renderRecapAndReports();
-      }
     }
 
     renderMenu();
