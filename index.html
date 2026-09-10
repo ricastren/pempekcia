@@ -74,7 +74,7 @@
       align-items: center;
       justify-content: center;
     }
-    /* Teks nama dinaikkan ke 83.0% dan ukuran 6pt */
+    /* Teks nama: dinaikkan ke 83.0% agar pas di dalam kotak */
     .val-nama {
       left: 25.4%;
       top: 83.0%;
@@ -345,7 +345,7 @@
   </div>
 
   <script>
-    // URL API Google Apps Script Milikmu
+    // URL WEB APP GOOGLE APPS SCRIPT
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby_qcO1vk49F-Hr3p9EFSo83_uY2IjFusRMHlJc96IukxU26-IWxuCElsdJ_BXy6U-f/exec";
 
     // Menu Data
@@ -401,11 +401,9 @@
       return document.getElementById('poBatchDate').value || todayStr;
     }
 
-    // Update Status Indikator Cloud
+    // Status Indikator Cloud
     function setCloudStatus(state, msg) {
       const el = document.getElementById('cloudStatus');
-      const txt = document.getElementById('cloudStatusTxt');
-      txt.innerText = msg;
       if (state === 'syncing') {
         el.className = 'text-[10px] bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full font-bold flex items-center gap-1';
         el.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span><span>' + msg + '</span>';
@@ -418,11 +416,10 @@
       }
     }
 
-    // Ambil Data dari Google Sheets memakai JSONP (Anti-CORS / Anti-Macet)
+    // Ambil Data Memakai JSONP (Anti-CORS Browser)
     function loadCloudData() {
       setCloudStatus('syncing', 'Memuat...');
 
-      // Buat callback global sementara
       window.handleCloudResponse = function(data) {
         if (data && data.status === 'success') {
           if (data.stock) {
@@ -451,12 +448,10 @@
           renderStock();
           renderRecapAndReports();
         }
-        // Bersihkan script tag
         const scriptEl = document.getElementById('jsonpLoader');
         if (scriptEl) scriptEl.remove();
       };
 
-      // Buat elemen script secara dinamis
       const oldScript = document.getElementById('jsonpLoader');
       if (oldScript) oldScript.remove();
 
@@ -464,13 +459,13 @@
       script.id = 'jsonpLoader';
       script.src = SCRIPT_URL + '?callback=handleCloudResponse&t=' + Date.now();
       script.onerror = function() {
-        console.warn('Koneksi cloud gagal, menggunakan data lokal.');
+        console.warn('Gagal koneksi ke cloud, menggunakan data lokal.');
         setCloudStatus('offline', 'Offline');
       };
       document.body.appendChild(script);
     }
 
-    // Kirim Data Terbaru ke Google Sheets
+    // Kirim Data ke Google Sheets
     async function syncToCloud(actionType) {
       setCloudStatus('syncing', 'Menyimpan...');
       const payload = {
@@ -480,7 +475,6 @@
       };
 
       try {
-        // Menggunakan URLSearchParams agar langsung diterima Apps Script tanpa blokir CORS
         const formBody = new URLSearchParams();
         formBody.append('data', JSON.stringify(payload));
 
@@ -497,7 +491,7 @@
       }
     }
 
-    // Hitung Kebutuhan Packaging per Pesanan
+    // Hitung Kebutuhan Packaging
     function calculateOrderPackaging(counts) {
       const c = counts || {};
       const singlePieces = (c.selam || 0) + (c.lenjer || 0) + (c.adaan || 0) + (c.kulit || 0) + (c.cheese || 0);
@@ -609,7 +603,7 @@
       return total;
     }
 
-    // Submit Order (Simpan & Kirim ke Google Sheets)
+    // Submit Order
     function submitOrder() {
       const cust = document.getElementById('custName').value.trim();
       const itemsInCart = Object.keys(cart);
@@ -641,7 +635,6 @@
         modal += item.hpp * qty;
         orderSummaryCounts[id] = qty;
 
-        // Potong stok butir
         if (item.isPackage) {
           for (let p in item.breakdown) {
             stock[p] = Math.max(0, (stock[p] || 0) - (item.breakdown[p] * qty));
@@ -651,7 +644,6 @@
         }
       });
 
-      // Potong stok kemasan
       const packagingUsed = calculateOrderPackaging(orderSummaryCounts);
       for (let key in packagingUsed) {
         packagingStock[key] = Math.max(0, (packagingStock[key] || 0) - packagingUsed[key]);
@@ -673,7 +665,6 @@
       localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
       localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
 
-      // Kirim pembaruan ke Google Sheets
       syncToCloud('syncOrders');
 
       alert(`✅ Pesanan Kak ${cust} berhasil disimpan!`);
@@ -693,7 +684,6 @@
         return;
       }
 
-      // 1. Kembalikan stok butir
       for (let id in order.counts) {
         const qty = order.counts[id];
         if (qty > 0) {
@@ -708,13 +698,11 @@
         }
       }
 
-      // 2. Kembalikan stok packaging
       const pack = order.packaging || calculateOrderPackaging(order.counts);
       for (let k in pack) {
         packagingStock[k] = (packagingStock[k] || 0) + pack[k];
       }
 
-      // 3. Hapus order dari memori lokal & sinkron ke Cloud
       orders.splice(idx, 1);
       localStorage.setItem('pempek_cia_orders', JSON.stringify(orders));
       localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
@@ -733,7 +721,6 @@
 
       const order = orders[idx];
 
-      // Kembalikan stok lama sebelum diubah ulang
       for (let id in order.counts) {
         const qty = order.counts[id];
         if (qty > 0) {
@@ -827,7 +814,7 @@
         </div>
       `).join('');
 
-      // Render Order List di PO dengan Tombol Edit & Hapus
+      // Render Order List di PO
       const batchListContainer = document.getElementById('batchOrderList');
       if (filteredOrders.length === 0) {
         batchListContainer.innerHTML = `<div class="text-center text-gray-400 py-3 text-[11px]">Belum ada pesanan di tanggal PO ini</div>`;
@@ -871,7 +858,7 @@
       document.getElementById('netProfitTxt').innerText = `IDR ${(grossTotal - modalTotal).toLocaleString()}`;
     }
 
-    // Render Batch Sticker Modal Menggunakan File Gambar Lokal (sticker.png)
+    // Render Batch Sticker Modal
     function openBatchStickerModal() {
       const currentPo = getCurrentPoDate();
       const filteredOrders = orders.filter(o => o.poDate === currentPo);
@@ -973,7 +960,6 @@
       localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
       localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
 
-      // Kirim pembaruan stok ke Cloud Google Sheets
       syncToCloud('updateStock');
 
       alert('Stok kemasan dan butir pempek berhasil disimpan! ✨');
