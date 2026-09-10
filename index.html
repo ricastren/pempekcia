@@ -4,9 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pempek Cia - PO & Kasir 🍡</title>
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Fredoka -->
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
   
+  <!-- Firebase SDK (Compat Version) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
@@ -44,8 +47,10 @@
 </head>
 <body class="flex items-center justify-center min-h-screen p-4 select-none">
 
+  <!-- Frame Portrait 9:16 -->
   <div class="mobile-frame bg-creamy rounded-[40px] border-4 border-amber-900/10 flex flex-col overflow-hidden relative">
     
+    <!-- Top Header & Tanggal PO -->
     <div class="pt-4 pb-2.5 px-5 bg-white/85 backdrop-blur-md border-b border-orange-100 space-y-2">
       <div class="flex justify-between items-center">
         <div class="flex items-center gap-2">
@@ -55,12 +60,14 @@
             <span class="text-[10px] text-amber-800/70 font-medium">Tenggiri Asli • Gurih & Lezat</span>
           </div>
         </div>
+        <!-- Status Cloud Firebase -->
         <div id="cloudStatus" class="text-[10px] bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full font-bold flex items-center gap-1">
           <span class="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
           <span id="cloudStatusTxt">Menghubungkan...</span>
         </div>
       </div>
 
+      <!-- Batch Date Selector -->
       <div class="flex items-center justify-between bg-orange-50/80 px-3 py-1.5 rounded-xl border border-orange-200">
         <span class="text-[11px] font-bold text-amber-900 flex items-center gap-1">
           📅 <span>Batch PO:</span>
@@ -69,14 +76,18 @@
       </div>
     </div>
 
+    <!-- Main Container Body -->
     <div class="flex-1 overflow-y-auto hide-scrollbar p-4 space-y-3 pb-20" id="mainContainer">
 
+      <!-- ================= TAB 1: INPUT ORDER PO ================= -->
       <section id="tab-order" class="space-y-3">
+        <!-- Edit Mode Banner -->
         <div id="editBanner" class="hidden bg-amber-100 border border-amber-300 text-amber-900 p-2.5 rounded-xl flex justify-between items-center text-xs">
           <span class="font-bold">✏️ Mode Edit Pesanan</span>
           <button onclick="cancelEditOrder()" class="text-[10px] bg-white px-2 py-1 rounded-md border border-amber-300 font-semibold text-red-600">Batal Edit</button>
         </div>
 
+        <!-- Step Indicator -->
         <div class="flex items-center justify-between px-3 pt-1">
           <div id="stepHeader1" class="flex items-center gap-1.5 text-xs font-bold text-pempek">
             <span class="w-5 h-5 rounded-full bg-pempek text-white flex items-center justify-center text-[10px]">1</span>
@@ -89,6 +100,7 @@
           </div>
         </div>
 
+        <!-- STEP 1: PILIH MENU -->
         <div id="orderStep1" class="space-y-3">
           <div class="bg-white p-3 rounded-2xl shadow-xs border border-orange-100">
             <label class="text-xs font-bold text-amber-900/80 block mb-1">Nama Pemesan 👤</label>
@@ -100,9 +112,7 @@
               <h2 class="text-xs font-bold text-amber-900 uppercase tracking-wider">Pilih Menu PO</h2>
               <span class="text-[10px] text-amber-700 font-semibold bg-amber-100 px-2 py-0.5 rounded-md">Satuan & Paket</span>
             </div>
-
-            <div id="menuContainer" class="space-y-2">
-              </div>
+            <div id="menuContainer" class="space-y-2"></div>
           </div>
 
           <div class="bg-white p-3.5 rounded-2xl shadow-xs border border-orange-100 space-y-2.5">
@@ -119,6 +129,7 @@
           </div>
         </div>
 
+        <!-- STEP 2: ATUR KANTONG -->
         <div id="orderStep2" class="hidden space-y-3">
           <div class="bg-white p-3 rounded-2xl shadow-xs border border-orange-100 space-y-2.5">
             <div class="flex justify-between items-center pb-2 border-b border-orange-100">
@@ -141,34 +152,24 @@
               </button>
             </div>
 
+            <!-- Auto Standar Preview -->
             <div id="autoPreviewSection" class="space-y-2 pt-1 border-t border-orange-100">
               <div class="flex justify-between items-center px-1">
                 <span class="text-[10px] text-gray-500 font-bold">📋 Pembagian Kantong Otomatis:</span>
                 <span id="autoBagCountBadge" class="text-[9px] bg-orange-100 text-orange-800 font-bold px-1.5 py-0.5 rounded">0 Kantong</span>
               </div>
-              <div id="autoBagsContainer" class="space-y-1.5 max-h-56 overflow-y-auto hide-scrollbar">
-                </div>
+              <div id="autoBagsContainer" class="space-y-1.5 max-h-56 overflow-y-auto hide-scrollbar"></div>
             </div>
 
+            <!-- Custom Manual Panel -->
             <div id="customManualSection" class="hidden space-y-2 pt-1 border-t border-orange-100">
               <div class="grid grid-cols-4 gap-1.5">
-                <button type="button" onclick="autoDistributeBags(5)" class="py-1 bg-amber-100 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-amber-200 text-center">
-                  Split 5 (S)
-                </button>
-                <button type="button" onclick="autoDistributeBags(10)" class="py-1 bg-amber-100 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-amber-200 text-center">
-                  Split 10 (M)
-                </button>
-                <button type="button" onclick="autoDistributeBags(15)" class="py-1 bg-amber-100 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-amber-200 text-center">
-                  Split 15 (L)
-                </button>
-                <button type="button" onclick="addManualBag('S')" class="py-1 bg-white border border-orange-200 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-orange-50 text-center">
-                  + Kantong
-                </button>
+                <button type="button" onclick="autoDistributeBags(5)" class="py-1 bg-amber-100 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-amber-200 text-center">Split 5 (S)</button>
+                <button type="button" onclick="autoDistributeBags(10)" class="py-1 bg-amber-100 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-amber-200 text-center">Split 10 (M)</button>
+                <button type="button" onclick="autoDistributeBags(15)" class="py-1 bg-amber-100 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-amber-200 text-center">Split 15 (L)</button>
+                <button type="button" onclick="addManualBag('S')" class="py-1 bg-white border border-orange-200 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-orange-50 text-center">+ Kantong</button>
               </div>
-
-              <div id="bagsListContainer" class="space-y-2 max-h-56 overflow-y-auto hide-scrollbar">
-                </div>
-
+              <div id="bagsListContainer" class="space-y-2 max-h-56 overflow-y-auto hide-scrollbar"></div>
               <div id="bagAllocStatus" class="text-[10px] text-center font-bold"></div>
             </div>
           </div>
@@ -184,9 +185,11 @@
         </div>
       </section>
 
+      <!-- ================= TAB 2: DAPUR & REKAP PRODUKSI ================= -->
       <section id="tab-recap" class="hidden space-y-3">
-        <div class="bg-gradient-to-br from-amber-500 to-pempek text-white p-3.5 rounded-2xl shadow-sm">
-          <div class="flex justify-between items-center">
+        <!-- Summary Banner PO -->
+        <div class="bg-gradient-to-br from-amber-500 to-pempek text-white p-3.5 rounded-2xl shadow-sm space-y-2">
+          <div class="flex justify-between items-center border-b border-white/20 pb-2">
             <div>
               <span class="text-[10px] uppercase font-bold tracking-wider opacity-90">Rekap PO Tanggal</span>
               <div class="text-sm font-bold" id="recapBatchDateTxt">-</div>
@@ -196,38 +199,54 @@
               <div class="text-base font-bold" id="recapCustomerCount">0 Orang</div>
             </div>
           </div>
+          <!-- Grand Total Seluruh Butir Pempek -->
+          <div class="flex justify-between items-center pt-0.5">
+            <span class="text-xs font-semibold opacity-95">Total Keseluruhan Pempek:</span>
+            <span class="text-lg font-extrabold bg-white/20 px-3 py-0.5 rounded-xl backdrop-blur-xs" id="grandTotalPiecesTxt">0 Butir</span>
+          </div>
         </div>
 
+        <!-- Total Butir Harus Dibuat -->
         <div class="bg-white p-3 rounded-2xl border border-orange-100 shadow-xs space-y-2">
           <div class="flex justify-between items-center border-b border-orange-100 pb-1.5">
             <h3 class="text-xs font-bold text-amber-950 flex items-center gap-1">
-              <span>🥣</span> Total Butir Harus Dibuat
+              <span>🥣</span> Butir Harus Dibuat (Adonan)
             </h3>
-            <span class="text-[9px] text-orange-600 bg-orange-50 font-bold px-2 py-0.5 rounded-md">Otomatis Termasuk Paket</span>
+            <span class="text-[9px] text-orange-600 bg-orange-50 font-bold px-2 py-0.5 rounded-md">Termasuk Isi Paket</span>
           </div>
-
-          <div id="productionItemsList" class="space-y-1.5 text-xs">
-            </div>
+          <div id="productionItemsList" class="space-y-1.5 text-xs"></div>
         </div>
 
+        <!-- Tombol Cetak Stiker A3 -->
         <div class="pt-1">
           <button onclick="openA3SheetModal()" class="w-full py-2.5 bg-amber-900 text-white rounded-2xl text-xs font-bold shadow-md hover:bg-amber-950 transition flex items-center justify-center gap-2">
             <span>📄</span> Download Lembar Stiker A3 (5 Kolom Utuh)
           </button>
         </div>
+      </section>
 
-        <div class="bg-white p-3 rounded-2xl border border-orange-100 shadow-xs">
-          <h3 class="text-xs font-bold text-amber-950 mb-2">Daftar Pemesan PO Ini</h3>
-          <div id="batchOrderList" class="space-y-2 max-h-56 overflow-y-auto hide-scrollbar text-xs">
-            </div>
+      <!-- ================= TAB 3: DAFTAR PESANAN SATU HALAMAN PENUH ================= -->
+      <section id="tab-orders-list" class="hidden space-y-3">
+        <div class="flex justify-between items-center px-1">
+          <div>
+            <h2 class="text-xs font-bold text-amber-950">Daftar Orderan Masuk</h2>
+            <span class="text-[10px] text-gray-500 font-medium" id="orderListPageSubtitle">PO Tanggal: -</span>
+          </div>
+          <span id="orderListBadgeCount" class="text-[10px] bg-orange-100 text-pempek font-bold px-2 py-0.5 rounded-md">0 Pesanan</span>
+        </div>
+
+        <div id="batchOrderList" class="space-y-2.5">
+          <!-- Rendered by JS -->
         </div>
       </section>
 
+      <!-- ================= TAB 4: STOK GUDANG & PACKAGING ================= -->
       <section id="tab-stock" class="hidden space-y-3">
         <div class="bg-amber-50/80 border border-amber-200/80 p-2.5 rounded-xl text-[10px] text-amber-900 leading-snug">
           💡 <b>Stok Saat Ini</b> berubah otomatis (angka merah minus = kekurangan stok). Masukkan angka di kolom <b>+ / -</b> untuk menambah stok belanja atau koreksi.
         </div>
 
+        <!-- Packaging Stock -->
         <div>
           <div class="flex justify-between items-center mb-1.5 px-1">
             <span class="text-xs font-bold text-amber-950">🛍️ Stok Kantong</span>
@@ -236,10 +255,10 @@
               <span>+ / -</span>
             </div>
           </div>
-          <div id="packagingStockList" class="space-y-1.5">
-            </div>
+          <div id="packagingStockList" class="space-y-1.5"></div>
         </div>
 
+        <!-- Pempek Pieces Stock -->
         <div class="pt-1">
           <div class="flex justify-between items-center mb-1.5 px-1">
             <span class="text-xs font-bold text-amber-950">📦 Stok Butir Pempek</span>
@@ -248,13 +267,13 @@
               <span>+ / -</span>
             </div>
           </div>
-          <div id="stockList" class="space-y-1.5">
-            </div>
+          <div id="stockList" class="space-y-1.5"></div>
         </div>
 
         <button onclick="applyStockChanges()" class="w-full py-2.5 bg-amber-900 text-white rounded-xl text-xs font-semibold shadow hover:bg-amber-950 transition">Perbarui Stok Sekarang</button>
       </section>
 
+      <!-- ================= TAB 5: LABA & KAS ================= -->
       <section id="tab-report" class="hidden space-y-3">
         <div class="grid grid-cols-2 gap-2">
           <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl">
@@ -276,26 +295,32 @@
 
     </div>
 
-    <nav class="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-orange-100 px-4 py-2 flex justify-between items-center rounded-b-[36px]">
-      <button onclick="switchTab('order')" id="nav-order" class="flex flex-col items-center gap-0.5 text-pempek">
+    <!-- Bottom Navigation Bar: 5 Tombol Lengkap -->
+    <nav class="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-orange-100 px-3 py-2 flex justify-between items-center rounded-b-[36px]">
+      <button onclick="switchTab('order')" id="nav-order" class="flex flex-col items-center gap-0.5 text-pempek flex-1">
         <span class="text-base">📝</span>
-        <span class="text-[10px] font-bold">Input PO</span>
+        <span class="text-[9.5px] font-bold">Input PO</span>
       </button>
-      <button onclick="switchTab('recap')" id="nav-recap" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek">
+      <button onclick="switchTab('recap')" id="nav-recap" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek flex-1">
         <span class="text-base">🥣</span>
-        <span class="text-[10px] font-bold">Dapur/PO</span>
+        <span class="text-[9.5px] font-bold">Dapur/PO</span>
       </button>
-      <button onclick="switchTab('stock')" id="nav-stock" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek">
+      <button onclick="switchTab('orders-list')" id="nav-orders-list" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek flex-1">
+        <span class="text-base">📋</span>
+        <span class="text-[9.5px] font-bold">Pesanan</span>
+      </button>
+      <button onclick="switchTab('stock')" id="nav-stock" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek flex-1">
         <span class="text-base">📦</span>
-        <span class="text-[10px] font-bold">Stok</span>
+        <span class="text-[9.5px] font-bold">Stok</span>
       </button>
-      <button onclick="switchTab('report')" id="nav-report" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek">
+      <button onclick="switchTab('report')" id="nav-report" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek flex-1">
         <span class="text-base">💰</span>
-        <span class="text-[10px] font-bold">Laba</span>
+        <span class="text-[9.5px] font-bold">Laba</span>
       </button>
     </nav>
   </div>
 
+  <!-- Modal A3 Sheet Generator -->
   <div id="a3SheetModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 z-50">
     <div class="bg-white rounded-3xl p-4 w-full max-w-sm h-[92%] flex flex-col shadow-2xl space-y-2.5">
       <div class="flex justify-between items-center border-b pb-2">
@@ -306,8 +331,7 @@
         <button onclick="closeA3SheetModal()" class="text-gray-400 hover:text-gray-600 font-bold text-base">✕</button>
       </div>
 
-      <div class="flex-1 overflow-y-auto hide-scrollbar p-1 space-y-3" id="a3SheetContainer">
-        </div>
+      <div class="flex-1 overflow-y-auto hide-scrollbar p-1 space-y-3" id="a3SheetContainer"></div>
 
       <div class="flex gap-2 pt-2 border-t">
         <button onclick="closeA3SheetModal()" class="w-full py-2 bg-gray-100 text-gray-700 text-xs font-semibold rounded-xl hover:bg-gray-200">Tutup</button>
@@ -316,7 +340,6 @@
   </div>
 
   <script>
-    // Konfigurasi Firebase Milikmu
     const firebaseConfig = {
       apiKey: "AIzaSyDhpKdk9vrShLVdps14x8KpSpJ_ZiBgrAY",
       authDomain: "pempek-cia.firebaseapp.com",
@@ -394,7 +417,6 @@
       }
     }
 
-    // Listener Realtime Firestore
     function initFirebaseRealtime() {
       setCloudStatus('syncing', 'Menghubungkan...');
 
@@ -494,7 +516,6 @@
       return pack;
     }
 
-    // Generator Otomatis Kantong Standar (S/M/L)
     function generateDefaultBags(orderCounts) {
       let bags = [];
       const favCount = orderCounts.pkt_favorit || 0;
@@ -557,7 +578,6 @@
       return res.join(' • ');
     }
 
-    // Step Navigation Wizard
     function goToStep(step) {
       if (step === 2) {
         const cust = document.getElementById('custName').value.trim();
@@ -583,7 +603,6 @@
         document.getElementById('stepHeader2').className = 'flex items-center gap-1.5 text-xs font-bold text-pempek';
         document.getElementById('stepHeader2').querySelector('span').className = 'w-5 h-5 rounded-full bg-pempek text-white flex items-center justify-center text-[10px]';
 
-        // Render preview mode yang aktif
         if (isSplitMode) {
           if (customBags.length === 0) autoDistributeBags(5);
           else renderBagsList();
@@ -602,7 +621,6 @@
       }
     }
 
-    // Render Pratinjau Kantong Otomatis (Auto Standar)
     function renderAutoPreview() {
       const defaultBags = generateDefaultBags(cart);
       const container = document.getElementById('autoBagsContainer');
@@ -718,7 +736,6 @@
       return total;
     }
 
-    // Switch Antara Mode Auto Standar & Custom Manual
     function setSplitMode(val) {
       isSplitMode = val;
       const autoSec = document.getElementById('autoPreviewSection');
@@ -789,7 +806,6 @@
       renderBagsList();
     }
 
-    // Update Input Custom Manual & Langsung Refresh Label Abu-Abu "(x butir)"
     function updateBagValue(bagIdx, itemKey, val) {
       const parsed = parseInt(val) || 0;
       customBags[bagIdx].counts[itemKey] = parsed;
@@ -900,7 +916,6 @@
       }
     }
 
-    // Submit Order
     function submitOrder() {
       const cust = document.getElementById('custName').value.trim();
       const itemsInCart = Object.keys(cart);
@@ -1080,9 +1095,11 @@
     function renderRecapAndReports() {
       const currentPo = getCurrentPoDate();
       document.getElementById('recapBatchDateTxt').innerText = currentPo;
+      document.getElementById('orderListPageSubtitle').innerText = `PO Tanggal: ${currentPo}`;
 
       const filteredOrders = orders.filter(o => o.poDate === currentPo);
       document.getElementById('recapCustomerCount').innerText = `${filteredOrders.length} Orang`;
+      document.getElementById('orderListBadgeCount').innerText = `${filteredOrders.length} Pesanan`;
 
       const piecesTotal = {
         selam: 0,
@@ -1106,6 +1123,10 @@
         piecesTotal.selam += (order.counts.selam || 0) + ((order.counts.pkt_favorit || 0) * 1);
       });
 
+      // Hitung Grand Total Butir Pempek
+      const grandTotalPieces = Object.values(piecesTotal).reduce((a, b) => a + b, 0);
+      document.getElementById('grandTotalPiecesTxt').innerText = `${grandTotalPieces.toLocaleString()} Butir`;
+
       const productionContainer = document.getElementById('productionItemsList');
       const itemNames = {
         selam: 'Kapal Selam Mini 🥚',
@@ -1124,9 +1145,10 @@
         </div>
       `).join('');
 
+      // Render Daftar Pesanan di Tab Mandiri
       const batchListContainer = document.getElementById('batchOrderList');
       if (filteredOrders.length === 0) {
-        batchListContainer.innerHTML = `<div class="text-center text-gray-400 py-3 text-[11px]">Belum ada pesanan di tanggal PO ini</div>`;
+        batchListContainer.innerHTML = `<div class="text-center text-gray-400 py-10 text-xs">Belum ada pesanan di tanggal PO ini</div>`;
       } else {
         batchListContainer.innerHTML = filteredOrders.map((o, idx) => {
           const itemSummary = [];
@@ -1143,23 +1165,23 @@
           const splitBadge = bags.length > 1 ? `<span class="bg-amber-200 text-amber-950 font-bold px-1.5 py-0.5 rounded text-[9px]">${bags.length} Kantong</span>` : '';
 
           return `
-            <div class="p-2.5 bg-orange-50/50 rounded-xl border border-orange-200/80 space-y-1">
+            <div class="p-3 bg-white rounded-2xl border border-orange-100 shadow-xs space-y-1.5">
               <div class="flex justify-between items-center">
                 <div class="flex items-center gap-1.5">
-                  <span class="font-bold text-amber-950">${idx + 1}. ${o.cust}</span>
+                  <span class="font-bold text-xs text-amber-950">${idx + 1}. ${o.cust}</span>
                   ${splitBadge}
                 </div>
-                <span class="text-pempek font-bold">IDR ${o.gross.toLocaleString()}</span>
+                <span class="text-pempek font-bold text-xs">IDR ${o.gross.toLocaleString()}</span>
               </div>
-              <div class="text-[10px] text-gray-600 font-medium">
+              <div class="text-[11px] text-gray-600 font-medium leading-relaxed">
                 ${itemSummary.join(', ')}
               </div>
               <div class="text-[9.5px] text-amber-800 bg-orange-100/60 px-2 py-0.5 rounded-md inline-block">
                 ${packLabel || 'Tanpa Kemasan Tambahan'}
               </div>
-              <div class="flex justify-end gap-1.5 pt-1 border-t border-orange-100">
-                <button onclick="editOrder('${o.id}')" class="px-2 py-0.5 bg-white border border-orange-200 text-amber-900 rounded-md text-[10px] font-bold hover:bg-orange-100">✏️ Edit</button>
-                <button onclick="deleteOrder('${o.id}')" class="px-2 py-0.5 bg-red-50 border border-red-200 text-red-600 rounded-md text-[10px] font-bold hover:bg-red-100">🗑️ Hapus</button>
+              <div class="flex justify-end gap-1.5 pt-1.5 border-t border-orange-100">
+                <button onclick="editOrder('${o.id}')" class="px-2.5 py-1 bg-white border border-orange-200 text-amber-900 rounded-lg text-[10px] font-bold hover:bg-orange-100">✏️ Edit</button>
+                <button onclick="deleteOrder('${o.id}')" class="px-2.5 py-1 bg-red-50 border border-red-200 text-red-600 rounded-lg text-[10px] font-bold hover:bg-red-100">🗑️ Hapus</button>
               </div>
             </div>
           `;
@@ -1171,7 +1193,6 @@
       document.getElementById('netProfitTxt').innerText = `IDR ${(grossTotal - modalTotal).toLocaleString()}`;
     }
 
-    // Generator Lembaran Kertas A3
     function generateA3FullSheet(pageStickers, pageIndex, totalPages, bgImg, callback) {
       const A3_WIDTH = 3508;
       const A3_HEIGHT = 4960;
@@ -1412,15 +1433,16 @@
       alert('Stok berhasil diperbarui dan disinkronkan! ✨');
     }
 
+    // Nav Switcher 5 Tab
     function switchTab(tab) {
-      ['order', 'recap', 'stock', 'report'].forEach(t => {
+      ['order', 'recap', 'orders-list', 'stock', 'report'].forEach(t => {
         document.getElementById(`tab-${t}`).classList.add('hidden');
-        document.getElementById(`nav-${t}`).className = 'flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek';
+        document.getElementById(`nav-${t}`).className = 'flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek flex-1';
       });
       document.getElementById(`tab-${tab}`).classList.remove('hidden');
-      document.getElementById(`nav-${tab}`).className = 'flex flex-col items-center gap-0.5 text-pempek';
+      document.getElementById(`nav-${tab}`).className = 'flex flex-col items-center gap-0.5 text-pempek flex-1';
 
-      if (tab === 'recap' || tab === 'report') {
+      if (tab === 'recap' || tab === 'orders-list' || tab === 'report') {
         renderRecapAndReports();
       }
     }
