@@ -271,11 +271,11 @@
       <section id="tab-report" class="hidden space-y-3">
         <div class="grid grid-cols-2 gap-2">
           <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl">
-            <span class="text-[10px] text-emerald-800 font-bold block">TOTAL GROSS (OMSET)</span>
+            <span class="text-[10px] text-emerald-800 block">TOTAL GROSS (OMSET)</span>
             <span class="text-sm font-bold text-emerald-950 mt-1 block" id="grossTxt">IDR 0</span>
           </div>
           <div class="bg-rose-50 border border-rose-200 p-3 rounded-2xl">
-            <span class="text-[10px] text-rose-800 font-bold block">TOTAL ESTIMASI MODAL</span>
+            <span class="text-[10px] text-rose-800 block">TOTAL ESTIMASI MODAL</span>
             <span class="text-sm font-bold text-rose-950 mt-1 block" id="modalTxt">IDR 0</span>
           </div>
         </div>
@@ -289,7 +289,7 @@
         <!-- 1. Master Harga Bahan Baku (Dengan Tombol Save Mandiri) -->
         <div class="bg-white p-3.5 rounded-2xl border border-orange-100 shadow-xs space-y-2.5">
           <div class="flex justify-between items-center border-b border-orange-100 pb-1.5">
-            <h3 class="text-xs font-bold text-amber-950">⚙️ Master Harga Bahan Baku</h3>
+            <h3 class="text-xs font-bold text-amber-950">⚙️ Master Harga Bahan Baku (Per KG / Liter)</h3>
             <button onclick="addMasterIngredient()" class="text-[9px] bg-pempek text-white font-bold px-2 py-0.5 rounded-md">+ Bahan</button>
           </div>
           <div id="masterIngredientsContainer" class="space-y-2 text-xs max-h-52 overflow-y-auto hide-scrollbar">
@@ -367,9 +367,9 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // 1. Master Harga Bahan Baku Global
+    // 1. Master Harga Bahan Baku Global (Harga per 1 KG atau 1 Liter)
     let masterIngredients = JSON.parse(localStorage.getItem('pempek_cia_ingredients')) || {
-      'ikan': { name: 'Daging Ikan Giling', price: 60000, unit: 'kg' },
+      'ikan': { name: 'Daging Ikan Giling', price: 106000, unit: 'kg' },
       'kulit_ikan': { name: 'Kulit Ikan Tenggiri/Gabus', price: 40000, unit: 'kg' },
       'air_es': { name: 'Air Es / Santan', price: 5000, unit: 'liter' },
       'telur': { name: 'Putih Telur / Telur Utuh', price: 28000, unit: 'kg' },
@@ -378,17 +378,17 @@
       'garam_gula': { name: 'Garam, Gula, Lada & Bumbu', price: 20000, unit: 'kg' },
       'kaldu': { name: 'Kaldu Jamur / Totole', price: 50000, unit: 'kg' },
       'minyak': { name: 'Minyak Goreng', price: 20000, unit: 'liter' },
-      'sagu': { name: 'Tepung Sagu / Tapioka', price: 15000, unit: 'kg' },
+      'sagu': { name: 'Tepung Sagu / Tapioka', price: 22000, unit: 'kg' },
       'maizena_beras': { name: 'Maizena & Tepung Beras', price: 16000, unit: 'kg' },
       'keju': { name: 'Keju Melt', price: 85000, unit: 'kg' }
     };
 
-    // 2. Resep Gramasi Sesuai Takaran Rahasia Kamu
+    // 2. Resep Gramasi Sesuai Takaran Rahasia
     let defaultMenu = JSON.parse(localStorage.getItem('pempek_cia_menu')) || [
       { 
         id: 'kulit', name: 'Kulit (60 pcs)', price: 4000, hpp: 0, isPackage: false,
         batchSize: 60,
-        recipe: { kulit_ikan: 500, ikan: 250, air_es: 400, telur: 120, bawang_merah: 70, daun_bawang: 30, garam_gula: 30, kaldu: 15, minyak: 80, sagu: 300, maizena_beras: 100 }
+        recipe: { kulit_ikan: 500, ikan: 250, air_es: 340, telur: 120, bawang_merah: 70, daun_bawang: 30, garam_gula: 30, kaldu: 15, minyak: 80, sagu: 300, maizena_beras: 100 }
       },
       { 
         id: 'adaan', name: 'Adaan (60 pcs)', price: 5000, hpp: 0, isPackage: false,
@@ -1144,7 +1144,7 @@
       resetCart();
     }
 
-    // Kalkulasi HPP per Satuan Berdasarkan Resep Gramasi & Batch Size
+    // Kalkulasi HPP per Satuan Berdasarkan Resep Gramasi & Batch Size (Dibagi 1000 karena harga master per KG/Liter)
     function calculateHppFromRecipe(recipe, batchSize) {
       if (!recipe || !batchSize || batchSize <= 0) return 0;
       let totalBatchCost = 0;
@@ -1152,7 +1152,7 @@
         const grams = recipe[ingKey] || 0;
         const ingObj = masterIngredients[ingKey];
         if (ingObj) {
-          totalBatchCost += grams * (ingObj.price || 0);
+          totalBatchCost += (grams / 1000) * (ingObj.price || 0);
         }
       }
       return Math.round(totalBatchCost / batchSize);
@@ -1166,14 +1166,12 @@
         masterIngredients[key].name = nameInput.value.trim();
         masterIngredients[key].price = parseFloat(priceInput.value) || 0;
 
-        // Hitung ulang semua HPP menu yang menggunakan bahan ini
         defaultMenu.forEach(item => {
           if (!item.isPackage) {
             item.hpp = calculateHppFromRecipe(item.recipe, item.batchSize);
           }
         });
 
-        // Hitung HPP Paket Favorit
         updatePackageHpp();
 
         localStorage.setItem('pempek_cia_ingredients', JSON.stringify(masterIngredients));
@@ -1240,7 +1238,6 @@
 
     // Render Master Bahan & Accordion Resep di Tab Laba
     function renderMasterAndRecipes() {
-      // 1. Master Bahan Baku
       const ingContainer = document.getElementById('masterIngredientsContainer');
       ingContainer.innerHTML = '';
       for (let key in masterIngredients) {
@@ -1248,7 +1245,7 @@
         const div = document.createElement('div');
         div.className = 'flex items-center justify-between bg-orange-50/50 p-2 rounded-xl border border-orange-100 gap-1.5';
         div.innerHTML = `
-          <input type="text" id="ing_name_${key}" value="${ing.name}" class="w-28 text-xs font-bold bg-white border border-orange-200 rounded px-1.5 py-1">
+          <input type="text" id="ing_name_${key}" value="${ing.name}" class="w-32 text-xs font-bold bg-white border border-orange-200 rounded px-1.5 py-1">
           <div class="flex items-center gap-1">
             <span class="text-[10px] text-gray-500">Rp</span>
             <input type="number" id="ing_price_${key}" value="${ing.price}" class="w-16 text-center text-xs font-bold bg-white border border-orange-200 rounded px-1 py-1">
@@ -1260,7 +1257,6 @@
         ingContainer.appendChild(div);
       }
 
-      // 2. Accordion Resep per Menu
       const accordionContainer = document.getElementById('recipeAccordionContainer');
       accordionContainer.innerHTML = '';
 
@@ -1288,7 +1284,6 @@
         }
 
         itemCard.innerHTML = `
-          <!-- Header Dropdown (Bisa Diklik) -->
           <div onclick="toggleRecipeAccordion('${item.id}')" class="flex justify-between items-center p-2.5 bg-white cursor-pointer hover:bg-orange-50/80 transition">
             <div class="flex items-center gap-2">
               <span class="font-bold text-amber-950 text-xs">📖 Resep ${item.name}</span>
@@ -1297,7 +1292,6 @@
             <span id="accordion_arrow_${item.id}" class="text-amber-900 font-bold transition-transform duration-200">▼</span>
           </div>
 
-          <!-- Isi Dropdown (Hidden by Default) -->
           <div id="accordion_content_${item.id}" class="hidden p-3 space-y-2.5 border-t border-orange-100 bg-white/60">
             <div class="flex justify-between items-center text-xs">
               <span class="font-semibold text-gray-700">Hasil Jadi Per Batch:</span>
@@ -1306,7 +1300,7 @@
                 <span class="text-[10px] text-gray-500">pcs</span>
               </div>
             </div>
-            <div class="space-y-1.5 pl-0.5">
+            <div class="space-y-1.5 pl-0.5 max-h-48 overflow-y-auto hide-scrollbar">
               ${recipeRowsHtml}
             </div>
             <button onclick="saveSingleRecipe('${item.id}')" class="w-full py-1.5 bg-amber-900 text-white rounded-lg text-xs font-bold shadow hover:bg-amber-950 transition">
@@ -1582,7 +1576,7 @@
                     </span>
                   </div>
                   <a href="${pngUrl}" download="Lembar_${formatType}_PempekCia_${currentPo}_Part${p + 1}.png" class="text-xs bg-pempek text-white font-bold px-3 py-1.5 rounded-xl shadow-xs hover:bg-orange-500 flex items-center gap-1">
-                    <span>⬇️</span> Unduh ${formatType} (.PNG)
+                    <span>⬇️</span> Utuh ${formatType} (.PNG)
                   </a>
                 </div>
                 <img src="${pngUrl}" class="w-full h-auto rounded-lg shadow-sm border border-orange-200 bg-white" alt="Lembar ${formatType} Part ${p + 1}" />
