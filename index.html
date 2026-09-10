@@ -4,12 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pempek Cia - PO & Kasir 🍡</title>
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts: Fredoka -->
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <!-- Firebase SDK (Compat Version) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
@@ -47,10 +44,8 @@
 </head>
 <body class="flex items-center justify-center min-h-screen p-4 select-none">
 
-  <!-- Frame Portrait 9:16 -->
   <div class="mobile-frame bg-creamy rounded-[40px] border-4 border-amber-900/10 flex flex-col overflow-hidden relative">
     
-    <!-- Top Header & Tanggal PO -->
     <div class="pt-4 pb-2.5 px-5 bg-white/85 backdrop-blur-md border-b border-orange-100 space-y-2">
       <div class="flex justify-between items-center">
         <div class="flex items-center gap-2">
@@ -60,14 +55,12 @@
             <span class="text-[10px] text-amber-800/70 font-medium">Tenggiri Asli • Gurih & Lezat</span>
           </div>
         </div>
-        <!-- Status Cloud Firebase -->
         <div id="cloudStatus" class="text-[10px] bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full font-bold flex items-center gap-1">
           <span class="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
           <span id="cloudStatusTxt">Menghubungkan...</span>
         </div>
       </div>
 
-      <!-- Batch Date Selector -->
       <div class="flex items-center justify-between bg-orange-50/80 px-3 py-1.5 rounded-xl border border-orange-200">
         <span class="text-[11px] font-bold text-amber-900 flex items-center gap-1">
           📅 <span>Batch PO:</span>
@@ -76,19 +69,15 @@
       </div>
     </div>
 
-    <!-- Main Container Body -->
     <div class="flex-1 overflow-y-auto hide-scrollbar p-4 space-y-3 pb-20" id="mainContainer">
 
-      <!-- ================= TAB 1: INPUT ORDER PO (WIZARD 2 STEP) ================= -->
       <section id="tab-order" class="space-y-3">
-        <!-- Edit Mode Banner -->
         <div id="editBanner" class="hidden bg-amber-100 border border-amber-300 text-amber-900 p-2.5 rounded-xl flex justify-between items-center text-xs">
           <span class="font-bold">✏️ Mode Edit Pesanan</span>
           <button onclick="cancelEditOrder()" class="text-[10px] bg-white px-2 py-1 rounded-md border border-amber-300 font-semibold text-red-600">Batal Edit</button>
         </div>
 
-        <!-- Step Indicator -->
-        <div class="flex items-center justify-between px-2 pt-1">
+        <div class="flex items-center justify-between px-3 pt-1">
           <div id="stepHeader1" class="flex items-center gap-1.5 text-xs font-bold text-pempek">
             <span class="w-5 h-5 rounded-full bg-pempek text-white flex items-center justify-center text-[10px]">1</span>
             <span>Pilih Menu</span>
@@ -100,15 +89,12 @@
           </div>
         </div>
 
-        <!-- ================= STEP 1 CONTENT: PILIH MENU ================= -->
         <div id="orderStep1" class="space-y-3">
-          <!-- Customer Info -->
           <div class="bg-white p-3 rounded-2xl shadow-xs border border-orange-100">
             <label class="text-xs font-bold text-amber-900/80 block mb-1">Nama Pemesan 👤</label>
             <input type="text" id="custName" placeholder="Contoh: Bunda Alika" class="w-full text-xs bg-orange-50/50 border border-orange-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-300 font-medium">
           </div>
 
-          <!-- Menu Selector -->
           <div class="space-y-1.5">
             <div class="flex justify-between items-center">
               <h2 class="text-xs font-bold text-amber-900 uppercase tracking-wider">Pilih Menu PO</h2>
@@ -116,11 +102,9 @@
             </div>
 
             <div id="menuContainer" class="space-y-2">
-              <!-- Rendered by JS -->
-            </div>
+              </div>
           </div>
 
-          <!-- Summary & Next Button -->
           <div class="bg-white p-3.5 rounded-2xl shadow-xs border border-orange-100 space-y-2.5">
             <div class="flex justify-between items-center text-xs font-bold">
               <span class="text-amber-900">Total Orderan Ini:</span>
@@ -135,7 +119,6 @@
           </div>
         </div>
 
-        <!-- ================= STEP 2 CONTENT: ATUR KANTONG ================= -->
         <div id="orderStep2" class="hidden space-y-3">
           <div class="bg-white p-3 rounded-2xl shadow-xs border border-orange-100 space-y-2.5">
             <div class="flex justify-between items-center pb-2 border-b border-orange-100">
@@ -149,7 +132,6 @@
               </div>
             </div>
 
-            <!-- Mode Pemilihan: Auto vs Manual -->
             <div class="flex gap-1.5">
               <button type="button" onclick="setSplitMode(false)" id="btnModeSingle" class="flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-amber-900 text-white shadow-xs">
                 ⚡ Auto Standar
@@ -159,8 +141,16 @@
               </button>
             </div>
 
-            <!-- Panel Pengaturan Kantong Manual -->
-            <div id="splitBagSection" class="hidden space-y-2 pt-1 border-t border-orange-100">
+            <div id="autoPreviewSection" class="space-y-2 pt-1 border-t border-orange-100">
+              <div class="flex justify-between items-center px-1">
+                <span class="text-[10px] text-gray-500 font-bold">📋 Pembagian Kantong Otomatis:</span>
+                <span id="autoBagCountBadge" class="text-[9px] bg-orange-100 text-orange-800 font-bold px-1.5 py-0.5 rounded">0 Kantong</span>
+              </div>
+              <div id="autoBagsContainer" class="space-y-1.5 max-h-56 overflow-y-auto hide-scrollbar">
+                </div>
+            </div>
+
+            <div id="customManualSection" class="hidden space-y-2 pt-1 border-t border-orange-100">
               <div class="grid grid-cols-4 gap-1.5">
                 <button type="button" onclick="autoDistributeBags(5)" class="py-1 bg-amber-100 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-amber-200 text-center">
                   Split 5 (S)
@@ -176,16 +166,13 @@
                 </button>
               </div>
 
-              <!-- List Kantong yang Disusun -->
               <div id="bagsListContainer" class="space-y-2 max-h-56 overflow-y-auto hide-scrollbar">
-                <!-- Rendered by JS -->
-              </div>
+                </div>
 
               <div id="bagAllocStatus" class="text-[10px] text-center font-bold"></div>
             </div>
           </div>
 
-          <!-- Bottom Action Buttons -->
           <div class="flex gap-2">
             <button onclick="goToStep(1)" class="py-2.5 px-4 text-xs font-semibold bg-white border border-orange-200 text-gray-600 rounded-xl hover:bg-orange-50 transition flex items-center gap-1">
               ⬅️ <span>Kembali</span>
@@ -197,7 +184,6 @@
         </div>
       </section>
 
-      <!-- ================= TAB 2: REKAP DAPUR & PRODUKSI PO ================= -->
       <section id="tab-recap" class="hidden space-y-3">
         <div class="bg-gradient-to-br from-amber-500 to-pempek text-white p-3.5 rounded-2xl shadow-sm">
           <div class="flex justify-between items-center">
@@ -221,8 +207,7 @@
           </div>
 
           <div id="productionItemsList" class="space-y-1.5 text-xs">
-            <!-- Rendered by JS -->
-          </div>
+            </div>
         </div>
 
         <div class="pt-1">
@@ -234,18 +219,15 @@
         <div class="bg-white p-3 rounded-2xl border border-orange-100 shadow-xs">
           <h3 class="text-xs font-bold text-amber-950 mb-2">Daftar Pemesan PO Ini</h3>
           <div id="batchOrderList" class="space-y-2 max-h-56 overflow-y-auto hide-scrollbar text-xs">
-            <!-- Rendered by JS -->
-          </div>
+            </div>
         </div>
       </section>
 
-      <!-- ================= TAB 3: STOK GUDANG & PACKAGING ================= -->
       <section id="tab-stock" class="hidden space-y-3">
         <div class="bg-amber-50/80 border border-amber-200/80 p-2.5 rounded-xl text-[10px] text-amber-900 leading-snug">
           💡 <b>Stok Saat Ini</b> berubah otomatis (angka merah minus = kekurangan stok). Masukkan angka di kolom <b>+ / -</b> untuk menambah stok belanja atau koreksi.
         </div>
 
-        <!-- Packaging Stock -->
         <div>
           <div class="flex justify-between items-center mb-1.5 px-1">
             <span class="text-xs font-bold text-amber-950">🛍️ Stok Kantong</span>
@@ -255,11 +237,9 @@
             </div>
           </div>
           <div id="packagingStockList" class="space-y-1.5">
-            <!-- Rendered by JS -->
-          </div>
+            </div>
         </div>
 
-        <!-- Pempek Pieces Stock -->
         <div class="pt-1">
           <div class="flex justify-between items-center mb-1.5 px-1">
             <span class="text-xs font-bold text-amber-950">📦 Stok Butir Pempek</span>
@@ -269,14 +249,12 @@
             </div>
           </div>
           <div id="stockList" class="space-y-1.5">
-            <!-- Rendered by JS -->
-          </div>
+            </div>
         </div>
 
         <button onclick="applyStockChanges()" class="w-full py-2.5 bg-amber-900 text-white rounded-xl text-xs font-semibold shadow hover:bg-amber-950 transition">Perbarui Stok Sekarang</button>
       </section>
 
-      <!-- ================= TAB 4: LABA & KAS ================= -->
       <section id="tab-report" class="hidden space-y-3">
         <div class="grid grid-cols-2 gap-2">
           <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl">
@@ -298,7 +276,6 @@
 
     </div>
 
-    <!-- Bottom Navigation Bar -->
     <nav class="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-orange-100 px-4 py-2 flex justify-between items-center rounded-b-[36px]">
       <button onclick="switchTab('order')" id="nav-order" class="flex flex-col items-center gap-0.5 text-pempek">
         <span class="text-base">📝</span>
@@ -319,7 +296,6 @@
     </nav>
   </div>
 
-  <!-- Modal A3 Sheet Generator -->
   <div id="a3SheetModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 z-50">
     <div class="bg-white rounded-3xl p-4 w-full max-w-sm h-[92%] flex flex-col shadow-2xl space-y-2.5">
       <div class="flex justify-between items-center border-b pb-2">
@@ -331,8 +307,7 @@
       </div>
 
       <div class="flex-1 overflow-y-auto hide-scrollbar p-1 space-y-3" id="a3SheetContainer">
-        <!-- Rendered dynamically -->
-      </div>
+        </div>
 
       <div class="flex gap-2 pt-2 border-t">
         <button onclick="closeA3SheetModal()" class="w-full py-2 bg-gray-100 text-gray-700 text-xs font-semibold rounded-xl hover:bg-gray-200">Tutup</button>
@@ -375,7 +350,6 @@
     let isSplitMode = false;
     let customBags = [];
     let editingOrderId = null;
-    let currentStep = 1;
 
     let stock = JSON.parse(localStorage.getItem('pempek_cia_stock')) || {
       cheese: 50,
@@ -520,6 +494,7 @@
       return pack;
     }
 
+    // Generator Otomatis Kantong Standar (S/M/L)
     function generateDefaultBags(orderCounts) {
       let bags = [];
       const favCount = orderCounts.pkt_favorit || 0;
@@ -582,7 +557,7 @@
       return res.join(' • ');
     }
 
-    // Wizard Step Navigation
+    // Step Navigation Wizard
     function goToStep(step) {
       if (step === 2) {
         const cust = document.getElementById('custName').value.trim();
@@ -608,10 +583,12 @@
         document.getElementById('stepHeader2').className = 'flex items-center gap-1.5 text-xs font-bold text-pempek';
         document.getElementById('stepHeader2').querySelector('span').className = 'w-5 h-5 rounded-full bg-pempek text-white flex items-center justify-center text-[10px]';
 
-        if (isSplitMode && customBags.length === 0) {
-          autoDistributeBags(5);
-        } else if (isSplitMode) {
-          renderBagsList();
+        // Render preview mode yang aktif
+        if (isSplitMode) {
+          if (customBags.length === 0) autoDistributeBags(5);
+          else renderBagsList();
+        } else {
+          renderAutoPreview();
         }
       } else {
         document.getElementById('orderStep2').classList.add('hidden');
@@ -623,7 +600,53 @@
         document.getElementById('stepHeader2').className = 'flex items-center gap-1.5 text-xs font-bold text-gray-400';
         document.getElementById('stepHeader2').querySelector('span').className = 'w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[10px]';
       }
-      currentStep = step;
+    }
+
+    // Render Pratinjau Kantong Otomatis (Auto Standar)
+    function renderAutoPreview() {
+      const defaultBags = generateDefaultBags(cart);
+      const container = document.getElementById('autoBagsContainer');
+      const badge = document.getElementById('autoBagCountBadge');
+      
+      badge.innerText = `${defaultBags.length} Kantong`;
+      container.innerHTML = '';
+
+      if (defaultBags.length === 0) {
+        container.innerHTML = '<div class="text-center text-xs text-gray-400 py-3">Belum ada butir yang dipilih</div>';
+        return;
+      }
+
+      defaultBags.forEach((bag, idx) => {
+        const c = bag.counts;
+        const itemsTxt = [];
+        if (c.selam) itemsTxt.push(`Selam (${c.selam})`);
+        if (c.lenjer) itemsTxt.push(`Lenjer (${c.lenjer})`);
+        if (c.adaan) itemsTxt.push(`Adaan (${c.adaan})`);
+        if (c.kulit) itemsTxt.push(`Kulit (${c.kulit})`);
+        if (c.cheese) itemsTxt.push(`Cheese (${c.cheese})`);
+        if (c.pkt_favorit) itemsTxt.push(`Paket Favorit (${c.pkt_favorit})`);
+
+        const totalInBag = Object.values(c).reduce((a, b) => a + (b || 0), 0);
+        const pLabel = getPackagingLabel(getBagPackaging(bag));
+
+        const div = document.createElement('div');
+        div.className = 'p-2 bg-orange-50/70 rounded-xl border border-orange-200/80 space-y-1';
+        div.innerHTML = `
+          <div class="flex justify-between items-center text-[10.5px]">
+            <span class="font-bold text-amber-950">🛍️ Kantong ${idx + 1} (${bag.size})</span>
+            <span class="bg-white text-orange-800 font-bold px-1.5 py-0.5 rounded border border-orange-200 text-[9.5px]">
+              ${totalInBag} butir
+            </span>
+          </div>
+          <div class="text-[10px] text-gray-600 font-medium">
+            ${itemsTxt.join(', ')}
+          </div>
+          <div class="text-[9px] text-amber-800 bg-orange-100/60 px-1.5 py-0.5 rounded inline-block">
+            ${pLabel}
+          </div>
+        `;
+        container.appendChild(div);
+      });
     }
 
     function renderMenu() {
@@ -695,15 +718,17 @@
       return total;
     }
 
-    // Split Mode Switcher
+    // Switch Antara Mode Auto Standar & Custom Manual
     function setSplitMode(val) {
       isSplitMode = val;
-      const sec = document.getElementById('splitBagSection');
+      const autoSec = document.getElementById('autoPreviewSection');
+      const customSec = document.getElementById('customManualSection');
       const btnSingle = document.getElementById('btnModeSingle');
       const btnSplit = document.getElementById('btnModeSplit');
 
       if (isSplitMode) {
-        sec.classList.remove('hidden');
+        autoSec.classList.add('hidden');
+        customSec.classList.remove('hidden');
         btnSplit.className = 'flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-amber-900 text-white shadow-xs';
         btnSingle.className = 'flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-orange-50 text-amber-900 border border-orange-200 hover:bg-orange-100';
         if (customBags.length === 0) {
@@ -712,10 +737,12 @@
           renderBagsList();
         }
       } else {
-        sec.classList.add('hidden');
+        customSec.classList.add('hidden');
+        autoSec.classList.remove('hidden');
         btnSingle.className = 'flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-amber-900 text-white shadow-xs';
         btnSplit.className = 'flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-orange-50 text-amber-900 border border-orange-200 hover:bg-orange-100';
         customBags = [];
+        renderAutoPreview();
       }
     }
 
@@ -762,6 +789,7 @@
       renderBagsList();
     }
 
+    // Update Input Custom Manual & Langsung Refresh Label Abu-Abu "(x butir)"
     function updateBagValue(bagIdx, itemKey, val) {
       const parsed = parseInt(val) || 0;
       customBags[bagIdx].counts[itemKey] = parsed;
@@ -1170,15 +1198,12 @@
         const x = MARGIN_X + col * (STICKER_SIZE + GAP);
         const y = MARGIN_Y + row * (STICKER_SIZE + GAP);
 
-        // 1. Gambar Background Template
         ctx.drawImage(bgImg, x, y, STICKER_SIZE, STICKER_SIZE);
 
-        // 2. Garis potong abu-abu
         ctx.strokeStyle = "#e2e8f0";
         ctx.lineWidth = 2;
         ctx.strokeRect(x, y, STICKER_SIZE, STICKER_SIZE);
 
-        // 3. Tulis Angka Pesanan di Oval
         ctx.fillStyle = "#0d1b2a";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
@@ -1201,12 +1226,10 @@
           }
         });
 
-        // 4. Tulis Nama Pembeli (Diturunkan dan Font Bold 17px)
         ctx.font = "bold 17px 'Fredoka', sans-serif";
         ctx.fillText(stk.labelNama, x + (260 * scale), y + (862 * scale));
       });
 
-      // Footer
       ctx.fillStyle = "#94a3b8";
       ctx.font = "bold 24px 'Fredoka', sans-serif";
       ctx.textAlign = "right";
