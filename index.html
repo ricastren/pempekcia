@@ -111,7 +111,7 @@
           <!-- Menu Selector -->
           <div class="space-y-1.5">
             <div class="flex justify-between items-center">
-              <h2 class="text-xs font-bold text-amber-900 uppercase tracking-wider">Pilih Menu PO</h2>
+              <h2 class="text-xs font-bold text-amber-950 uppercase tracking-wider">Pilih Menu PO</h2>
               <span id="part1ItemsBadge" class="text-[10px] text-amber-700 font-semibold bg-amber-100 px-2 py-0.5 rounded-md">0 Butir Dipilih</span>
             </div>
             <div id="menuContainer" class="space-y-2">
@@ -329,7 +329,6 @@
   </div>
 
   <script>
-    // Konfigurasi Firebase Milikmu
     const firebaseConfig = {
       apiKey: "AIzaSyDhpKdk9vrShLVdps14x8KpSpJ_ZiBgrAY",
       authDomain: "pempek-cia.firebaseapp.com",
@@ -407,7 +406,6 @@
       }
     }
 
-    // Listener Realtime Firestore
     function initFirebaseRealtime() {
       setCloudStatus('syncing', 'Menghubungkan...');
 
@@ -466,7 +464,7 @@
       }
     }
 
-    // ================= STEP NAVIGATOR (2 PART ORDER) =================
+    // ================= STEP NAVIGATOR =================
     function goToStep(step) {
       const cust = document.getElementById('custName').value.trim();
       const itemsInCart = Object.keys(cart);
@@ -506,7 +504,6 @@
       }
     }
 
-    // Hitung Kemasan dari 1 Kantong
     function getBagPackaging(bag) {
       const c = bag.counts || bag;
       const sizeType = bag.size || 'AUTO';
@@ -548,7 +545,6 @@
       return pack;
     }
 
-    // Generator Otomatis Kantong Standar (S/M/L)
     function generateDefaultBags(orderCounts) {
       let bags = [];
       const favCount = orderCounts.pkt_favorit || 0;
@@ -611,7 +607,6 @@
       return res.join(' • ');
     }
 
-    // Render Menu Items
     function renderMenu() {
       const container = document.getElementById('menuContainer');
       container.innerHTML = '';
@@ -776,7 +771,7 @@
         { id: 'pkt_favorit', name: 'Favorit' }
       ];
 
-      // Jika Auto Standar Mode
+      // 1. Auto Standar Mode
       if (!isSplitMode) {
         const autoBags = generateDefaultBags(cart);
         if (autoBags.length === 0) {
@@ -814,7 +809,7 @@
         return;
       }
 
-      // Jika Custom Manual Mode
+      // 2. Custom Manual Mode
       if (customBags.length === 0) {
         container.innerHTML = '<div class="text-center text-[10px] text-gray-400 py-2">Belum ada kantong. Klik tombol Split di atas.</div>';
         checkBagAllocation();
@@ -842,12 +837,24 @@
             <button onclick="removeBag(${idx})" class="text-red-600 font-bold hover:text-red-800">Hapus</button>
           </div>
           <div class="grid grid-cols-6 gap-1 text-[9px] font-semibold text-center">
-            ${itemKeys.map(k => `
-              <div>
-                <span class="text-gray-500 block leading-tight">${k.name}</span>
-                <input type="number" min="0" value="${c[k.id] || 0}" onfocus="this.select()" oninput="updateBagValue(${idx}, '${k.id}', this.value)" class="w-full text-center font-bold bg-white border border-orange-200 rounded py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500">
-              </div>
-            `).join('')}
+            ${itemKeys.map(k => {
+              const isPurchased = (cart[k.id] || 0) > 0;
+              if (isPurchased) {
+                return `
+                  <div>
+                    <span class="text-gray-700 font-bold block leading-tight">${k.name}</span>
+                    <input type="number" min="0" value="${c[k.id] || 0}" onfocus="this.select()" oninput="updateBagValue(${idx}, '${k.id}', this.value)" class="w-full text-center font-bold bg-white border border-orange-300 rounded py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500">
+                  </div>
+                `;
+              } else {
+                return `
+                  <div class="opacity-30">
+                    <span class="text-gray-400 block leading-tight line-through">${k.name}</span>
+                    <input type="text" disabled value="-" class="w-full text-center font-bold bg-gray-100 border border-gray-200 text-gray-400 rounded py-0.5 cursor-not-allowed select-none">
+                  </div>
+                `;
+              }
+            }).join('')}
           </div>
         `;
         container.appendChild(div);
@@ -1186,24 +1193,23 @@
       const GAP = 40;
       const STICKER_SIZE = 624;
 
-      // Buat array 35 slot penuh
       for (let idx = 0; idx < (COLS * ROWS); idx++) {
-        const stk = pageStickers[idx] || null; // null = stiker kosong cadangan
+        const stk = pageStickers[idx] || null;
 
         const col = idx % COLS;
         const row = Math.floor(idx / COLS);
         const x = MARGIN_X + col * (STICKER_SIZE + GAP);
         const y = MARGIN_Y + row * (STICKER_SIZE + GAP);
 
-        // 1. Gambar Template Stiker
+        // 1. Gambar Background Template
         ctx.drawImage(bgImg, x, y, STICKER_SIZE, STICKER_SIZE);
 
-        // 2. Garis batas potong abu-abu tipis
+        // 2. Garis potong
         ctx.strokeStyle = "#e2e8f0";
         ctx.lineWidth = 2;
         ctx.strokeRect(x, y, STICKER_SIZE, STICKER_SIZE);
 
-        // 3. Tulis Angka & Nama (Hanya jika bukan stiker kosongan)
+        // 3. Tulis Angka & Nama
         if (stk && stk.counts) {
           ctx.fillStyle = "#0d1b2a";
           ctx.textAlign = "center";
@@ -1227,13 +1233,12 @@
             }
           });
 
-          // Tulis Nama Pembeli (Diturunkan dan diperbesar 17px)
+          // Nama pembeli pas di kotak nama
           ctx.font = "bold 17px 'Fredoka', sans-serif";
           ctx.fillText(stk.labelNama, x + (260 * scale), y + (862 * scale));
         }
       }
 
-      // Footer Lembaran A3
       ctx.fillStyle = "#94a3b8";
       ctx.font = "bold 24px 'Fredoka', sans-serif";
       ctx.textAlign = "right";
@@ -1283,7 +1288,7 @@
       container.innerHTML = '<div class="text-center py-8 text-xs text-gray-500 font-semibold">Menyusun stiker lembaran A3...</div>';
       document.getElementById('a3SheetModal').classList.remove('hidden');
 
-      const STICKERS_PER_PAGE = 35; // 5 kolom x 7 baris
+      const STICKERS_PER_PAGE = 35;
       const totalPages = Math.ceil(allStickers.length / STICKERS_PER_PAGE) || 1;
 
       const bgImg = new Image();
@@ -1364,7 +1369,7 @@
         const colorClass = isNegative ? 'text-red-600 bg-red-50 border-red-200' : 'text-amber-950 bg-orange-50/50 border-orange-100';
 
         const row = document.createElement('div');
-        row.className = 'flex justify-between items-center bg-white p-2 rounded-xl border border-orange-100 shadow-xs';
+        row.className = 'flex justify-between items-center bg-white p-2.5 rounded-xl border border-orange-100 shadow-xs';
         row.innerHTML = `
           <span class="text-xs font-semibold text-amber-950">${item.name}</span>
           <div class="flex items-center gap-2">
