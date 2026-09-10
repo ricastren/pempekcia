@@ -88,33 +88,30 @@
       letter-spacing: -0.2px;
     }
 
-    /* CSS Cetak Kertas A3 Khusus - Perbaikan Tanpa Potong Frame */
+    /* CSS Cetak Kertas A3 (5 Kolom Penuh) */
     @media print {
       @page {
         size: A3 portrait;
         margin: 5mm;
       }
-      html, body {
+      body {
         background: #ffffff !important;
         margin: 0 !important;
         padding: 0 !important;
-        width: 100% !important;
-        height: auto !important;
-        overflow: visible !important;
       }
-      /* Sembunyikan seluruh UI web */
-      .mobile-frame, nav, #mainContainer {
+      /* Sembunyikan frame HP */
+      .mobile-frame {
         display: none !important;
       }
-      /* Tampilkan modal cetak secara penuh */
+      /* Tampilkan modal stiker secara utuh */
       #batchStickerModal {
         display: block !important;
         position: static !important;
         background: transparent !important;
-        padding: 0 !important;
         width: 100% !important;
         height: auto !important;
-        overflow: visible !important;
+        padding: 0 !important;
+        z-index: auto !important;
       }
       #batchStickerModal > div {
         border: none !important;
@@ -122,21 +119,21 @@
         padding: 0 !important;
         width: 100% !important;
         height: auto !important;
-        overflow: visible !important;
       }
+      /* Sembunyikan header modal & tombol print */
       #batchStickerModal .flex.justify-between,
       #batchStickerModal .border-t {
         display: none !important;
       }
+      /* Grid 5 Kolom ke Kanan */
       #batchPrintArea {
         display: grid !important;
         grid-template-columns: repeat(5, 54mm) !important;
         column-gap: 3.5mm !important;
         row-gap: 3.5mm !important;
         width: 100% !important;
-        overflow: visible !important;
-        padding: 0 !important;
         margin: 0 auto !important;
+        padding: 0 !important;
       }
       .sticker-wrapper {
         box-shadow: none !important;
