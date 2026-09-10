@@ -268,7 +268,7 @@
       </section>
 
       <!-- ================= TAB 5: LABA & PENGATURAN 2 BARIS ================= -->
-      <section id="tab-report" class="space-y-3">
+      <section id="tab-report" class="hidden space-y-3">
         <div class="grid grid-cols-2 gap-2">
           <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl">
             <span class="text-[10px] text-emerald-800 block">TOTAL GROSS (OMSET)</span>
@@ -1478,7 +1478,7 @@
         accordionContainer.appendChild(itemCard);
       });
 
-      // Render Resep Cuko (Dengan Total ml)
+      // Render Resep Cuko
       const cukoHpp = calculateBatchCost(cukoRecipeData.recipe);
       const cukoCard = document.createElement('div');
       cukoCard.className = 'bg-amber-50/50 rounded-xl border border-amber-200 overflow-hidden';
@@ -1544,6 +1544,181 @@
         </div>
       `;
       accordionContainer.appendChild(cukoCard);
+    }
+
+    function addMasterIngredient() {
+      const newKey = 'ing_' + Date.now();
+      masterIngredients[newKey] = { name: 'Bahan Baru', price: 10000, qty: 1000, unit: 'gram' };
+      renderMasterAndRecipes();
+    }
+
+    function deleteMasterIngredient(key) {
+      delete masterIngredients[key];
+      renderMasterAndRecipes();
+    }
+
+    function renderStackedBarChart(poDatesMap) {
+      const chartContainer = document.getElementById('stackedBarChartContainer');
+      chartContainer.innerHTML = '';
+
+      const dates = Object.keys(poDatesMap).sort();
+      if (dates.length === 0) {
+        chartContainer.innerHTML = '<div class="w-full text-center text-xs text-gray-400 py-12">Belum ada data transaksi PO</div>';
+        return;
+      }
+
+      let maxOmset = 100000;
+      dates.forEach(date => {
+        let total = Object.values(poDatesMap[date].types).reduce((a, b) => a + b, 0);
+        if (total > maxOmset) maxOmset = total;
+      });
+
+      const typeColors = {
+        kulit: 'bg-orange-400',
+        adaan: 'bg-amber-500',
+        lenjer: 'bg-yellow-500',
+        cheese: 'bg-emerald-500',
+        selam: 'bg-sky-500',
+        pkt_favorit: 'bg-purple-500'
+      };
+
+      dates.forEach(date => {
+        const batch = poDatesMap[date];
+        const totalBatchOmset = Object.values(batch.types).reduce((a, b) => a + b, 0);
+        const barHeightPercent = maxOmset > 0 ? Math.min(100, Math.round((totalBatchOmset / maxOmset) * 100)) : 0;
+
+        const colDiv = document.createElement('div');
+        colDiv.className = 'flex-1 h-full flex flex-col justify-end items-center gap-1 group relative';
+
+        colDiv.innerHTML = `
+          <div class="text-[8px] font-bold text-gray-600 mb-0.5">Rp${(totalBatchOmset/1000).toFixed(0)}k</div>
+          <div class="w-full max-w-[28px] bg-gray-100 rounded-t-lg flex flex-col-reverse overflow-hidden transition-all duration-300" style="height: ${Math.max(15, barHeightPercent)}%;">
+            ${Object.keys(batch.types).map(tKey => {
+              const val = batch.types[tKey];
+              const p = totalBatchOmset > 0 ? (val / totalBatchOmset) * 100 : 0;
+              if (p <= 0) return '';
+              return `<div class="w-full ${typeColors[tKey] || 'bg-gray-400'}" style="height: ${p}%;" title="${tKey}: Rp${val.toLocaleString()}"></div>`;
+            }).join('')}
+          </div>
+          <span class="text-[8px] text-gray-500 font-semibold truncate max-w-[40px]">${date.substring(5)}</span>
+        `;
+        chartContainer.appendChild(colDiv);
+      });
+    }
+
+    function renderRecapAndReports() {
+      const currentPo = getCurrentPoDate();
+      document.getElementById('recapBatchDateTxt').innerText = currentPo;
+      document.getElementById('orderListPageSubtitle').innerText = `PO Tanggal: ${currentPo}`;
+
+      const filteredOrders = orders.filter(o => o.poDate === currentPo);
+      document.getElementById('recapCustomerCount').innerText = `${filteredOrders.length} Orang`;
+      document.getElementById('orderListBadgeCount').innerText = `${filteredOrders.length} Pesanan`;
+
+      const piecesTotal = { selam: 0, lenjer: 0, adaan: 0, kulit: 0, cheese: 0 };
+      let grossTotal = 0;
+      let modalTotal = 0;
+      let poDatesMap = {};
+
+      orders.forEach(order => {
+        const bags = order.bags || generateDefaultBags(order.counts);
+        order.modal = calculateTotalModalForOrder(order.counts, bags);
+        order.profit = order.gross - order.modal;
+
+        const dStr = order.poDate || 'Tanpa Tanggal';
+        if (!poDatesMap[dStr]) {
+          poDatesMap[dStr] = { types: { kulit: 0, adaan: 0, lenjer: 0, cheese: 0, selam: 0, pkt_favorit: 0 } };
+        }
+
+        Object.keys(order.counts || {}).forEach(mId => {
+          const qty = order.counts[mId] || 0;
+          const mObj = defaultMenu.find(m => m.id === mId);
+          if (mObj && qty > 0) {
+            poDatesMap[dStr].types[mId] = (poDatesMap[dStr].types[mId] || 0) + (mObj.price * qty);
+          }
+        });
+
+        if (order.poDate === currentPo) {
+          grossTotal += order.gross;
+          modalTotal += order.modal;
+
+          piecesTotal.cheese += (order.counts.cheese || 0);
+          piecesTotal.kulit += (order.counts.kulit || 0) + ((order.counts.pkt_favorit || 0) * 1);
+          piecesTotal.lenjer += (order.counts.lenjer || 0) + ((order.counts.pkt_favorit || 0) * 1);
+          piecesTotal.adaan += (order.counts.adaan || 0) + ((order.counts.pkt_favorit || 0) * 2);
+          piecesTotal.selam += (order.counts.selam || 0) + ((order.counts.pkt_favorit || 0) * 1);
+        }
+      });
+
+      const grandTotalPieces = Object.values(piecesTotal).reduce((a, b) => a + b, 0);
+      document.getElementById('grandTotalPiecesTxt').innerText = `${grandTotalPieces.toLocaleString()} Butir`;
+
+      const productionContainer = document.getElementById('productionItemsList');
+      const itemNames = {
+        selam: 'Kapal Selam Mini 🥚',
+        lenjer: 'Lenjer Gurih 🥖',
+        adaan: 'Adaan Bawang 🧅',
+        kulit: 'Kulit Crispy 🤎',
+        cheese: 'Cheese Melt 🧀'
+      };
+
+      productionContainer.innerHTML = Object.keys(piecesTotal).map(k => `
+        <div class="flex justify-between items-center bg-orange-50/70 px-3 py-1.5 rounded-xl border border-orange-100">
+          <span class="font-semibold text-amber-950">${itemNames[k]}</span>
+          <span class="font-bold text-amber-950 bg-white px-2.5 py-0.5 rounded-lg border border-orange-200">
+            ${piecesTotal[k]} <span class="text-[10px] text-gray-500 font-normal">butir</span>
+          </span>
+        </div>
+      `).join('');
+
+      const batchListContainer = document.getElementById('batchOrderList');
+      if (filteredOrders.length === 0) {
+        batchListContainer.innerHTML = `<div class="text-center text-gray-400 py-10 text-xs">Belum ada pesanan di tanggal PO ini</div>`;
+      } else {
+        batchListContainer.innerHTML = filteredOrders.map((o, idx) => {
+          const itemSummary = [];
+          if (o.counts.selam) itemSummary.push(`Selam (${o.counts.selam})`);
+          if (o.counts.lenjer) itemSummary.push(`Lenjer (${o.counts.lenjer})`);
+          if (o.counts.adaan) itemSummary.push(`Adaan (${o.counts.adaan})`);
+          if (o.counts.kulit) itemSummary.push(`Kulit (${o.counts.kulit})`);
+          if (o.counts.cheese) itemSummary.push(`Cheese (${o.counts.cheese})`);
+          if (o.counts.pkt_favorit) itemSummary.push(`Paket Favorit (${o.counts.pkt_favorit})`);
+
+          const bags = o.bags || generateDefaultBags(o.counts);
+          const packInfo = o.packaging || calculateOrderPackaging(o.counts, bags);
+          const packLabel = getPackagingLabel(packInfo);
+          const splitBadge = bags.length > 1 ? `<span class="bg-amber-200 text-amber-950 font-bold px-1.5 py-0.5 rounded text-[9px]">${bags.length} Kantong</span>` : '';
+
+          return `
+            <div class="p-3 bg-white rounded-2xl border border-orange-100 shadow-xs space-y-1.5">
+              <div class="flex justify-between items-center">
+                <div class="flex items-center gap-1.5">
+                  <span class="font-bold text-xs text-amber-950">${idx + 1}. ${o.cust}</span>
+                  ${splitBadge}
+                </div>
+                <span class="text-pempek font-bold text-xs">IDR ${o.gross.toLocaleString()}</span>
+              </div>
+              <div class="text-[11px] text-gray-600 font-medium leading-relaxed">
+                ${itemSummary.join(', ')}
+              </div>
+              <div class="text-[9.5px] text-amber-800 bg-orange-100/60 px-2 py-0.5 rounded-md inline-block">
+                ${packLabel || 'Tanpa Kemasan Tambahan'}
+              </div>
+              <div class="flex justify-end gap-1.5 pt-1.5 border-t border-orange-100">
+                <button onclick="editOrder('${o.id}')" class="px-2.5 py-1 bg-white border border-orange-200 text-amber-900 rounded-lg text-[10px] font-bold hover:bg-orange-100">✏️ Edit</button>
+                <button onclick="deleteOrder('${o.id}')" class="px-2.5 py-1 bg-red-50 border border-red-200 text-red-600 rounded-lg text-[10px] font-bold hover:bg-red-100">🗑️ Hapus</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      document.getElementById('grossTxt').innerText = `IDR ${grossTotal.toLocaleString()}`;
+      document.getElementById('modalTxt').innerText = `IDR ${modalTotal.toLocaleString()}`;
+      document.getElementById('netProfitTxt').innerText = `IDR ${(grossTotal - modalTotal).toLocaleString()}`;
+
+      renderStackedBarChart(poDatesMap);
+      renderMasterAndRecipes();
     }
 
     renderMenu();
