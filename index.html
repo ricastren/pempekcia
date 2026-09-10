@@ -79,7 +79,7 @@
     <!-- Main Container Body -->
     <div class="flex-1 overflow-y-auto hide-scrollbar p-4 space-y-3 pb-20" id="mainContainer">
 
-      <!-- ================= TAB 1: INPUT ORDER PO ================= -->
+      <!-- ================= TAB 1: INPUT ORDER PO (WIZARD 2 STEP) ================= -->
       <section id="tab-order" class="space-y-3">
         <!-- Edit Mode Banner -->
         <div id="editBanner" class="hidden bg-amber-100 border border-amber-300 text-amber-900 p-2.5 rounded-xl flex justify-between items-center text-xs">
@@ -87,78 +87,112 @@
           <button onclick="cancelEditOrder()" class="text-[10px] bg-white px-2 py-1 rounded-md border border-amber-300 font-semibold text-red-600">Batal Edit</button>
         </div>
 
-        <!-- Customer Info -->
-        <div class="bg-white p-3 rounded-2xl shadow-xs border border-orange-100">
-          <label class="text-xs font-bold text-amber-900/80 block mb-1">Nama Pemesan 👤</label>
-          <input type="text" id="custName" placeholder="Contoh: Bunda Alika" class="w-full text-xs bg-orange-50/50 border border-orange-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-300 font-medium">
-        </div>
-
-        <!-- Menu Selector -->
-        <div class="space-y-1.5">
-          <div class="flex justify-between items-center">
-            <h2 class="text-xs font-bold text-amber-900 uppercase tracking-wider">Pilih Menu PO</h2>
-            <span class="text-[10px] text-amber-700 font-semibold bg-amber-100 px-2 py-0.5 rounded-md">Satuan & Paket</span>
+        <!-- Step Indicator -->
+        <div class="flex items-center justify-between px-2 pt-1">
+          <div id="stepHeader1" class="flex items-center gap-1.5 text-xs font-bold text-pempek">
+            <span class="w-5 h-5 rounded-full bg-pempek text-white flex items-center justify-center text-[10px]">1</span>
+            <span>Pilih Menu</span>
           </div>
-
-          <div id="menuContainer" class="space-y-2">
-            <!-- Rendered by JS -->
+          <div class="h-0.5 w-12 bg-orange-200"></div>
+          <div id="stepHeader2" class="flex items-center gap-1.5 text-xs font-bold text-gray-400">
+            <span class="w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[10px]">2</span>
+            <span>Atur Kantong</span>
           </div>
         </div>
 
-        <!-- Pengaturan Kemasan & Stiker -->
-        <div class="bg-white p-3 rounded-2xl shadow-xs border border-orange-100 space-y-2">
-          <div class="flex justify-between items-center">
-            <h3 class="text-xs font-bold text-amber-950 flex items-center gap-1">
-              <span>🛍️</span> Kemasan & Stiker
-            </h3>
-            <span id="totalItemsBadge" class="text-[10px] bg-orange-100 text-pempek font-bold px-2 py-0.5 rounded-md">0 Butir Dipilih</span>
+        <!-- ================= STEP 1 CONTENT: PILIH MENU ================= -->
+        <div id="orderStep1" class="space-y-3">
+          <!-- Customer Info -->
+          <div class="bg-white p-3 rounded-2xl shadow-xs border border-orange-100">
+            <label class="text-xs font-bold text-amber-900/80 block mb-1">Nama Pemesan 👤</label>
+            <input type="text" id="custName" placeholder="Contoh: Bunda Alika" class="w-full text-xs bg-orange-50/50 border border-orange-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-300 font-medium">
           </div>
 
-          <div class="flex gap-1.5">
-            <button type="button" onclick="setSplitMode(false)" id="btnModeSingle" class="flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-amber-900 text-white shadow-xs">
-              ⚡ Auto Standar
-            </button>
-            <button type="button" onclick="setSplitMode(true)" id="btnModeSplit" class="flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-orange-50 text-amber-900 border border-orange-200 hover:bg-orange-100">
-              🛠️ Custom Manual
-            </button>
-          </div>
-
-          <!-- Panel Pengaturan Kantong Manual -->
-          <div id="splitBagSection" class="hidden space-y-2 pt-1 border-t border-orange-100">
-            <!-- Baris Tombol Split: S, M, L, dan Tambah Kantong -->
-            <div class="grid grid-cols-4 gap-1.5">
-              <button type="button" onclick="autoDistributeBags(5)" class="py-1 bg-amber-100 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-amber-200 text-center">
-                Split 5 (S)
-              </button>
-              <button type="button" onclick="autoDistributeBags(10)" class="py-1 bg-amber-100 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-amber-200 text-center">
-                Split 10 (M)
-              </button>
-              <button type="button" onclick="autoDistributeBags(15)" class="py-1 bg-amber-100 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-amber-200 text-center">
-                Split 15 (L)
-              </button>
-              <button type="button" onclick="addManualBag('S')" class="py-1 bg-white border border-orange-200 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-orange-50 text-center">
-                + Kantong
-              </button>
+          <!-- Menu Selector -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between items-center">
+              <h2 class="text-xs font-bold text-amber-900 uppercase tracking-wider">Pilih Menu PO</h2>
+              <span class="text-[10px] text-amber-700 font-semibold bg-amber-100 px-2 py-0.5 rounded-md">Satuan & Paket</span>
             </div>
 
-            <!-- List Kantong yang Disusun -->
-            <div id="bagsListContainer" class="space-y-2 max-h-56 overflow-y-auto hide-scrollbar">
+            <div id="menuContainer" class="space-y-2">
               <!-- Rendered by JS -->
             </div>
+          </div>
 
-            <div id="bagAllocStatus" class="text-[10px] text-center font-bold"></div>
+          <!-- Summary & Next Button -->
+          <div class="bg-white p-3.5 rounded-2xl shadow-xs border border-orange-100 space-y-2.5">
+            <div class="flex justify-between items-center text-xs font-bold">
+              <span class="text-amber-900">Total Orderan Ini:</span>
+              <span class="text-pempek text-base font-bold" id="totalBelanjaTxt">IDR 0</span>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="resetCart()" class="flex-1 py-2 text-xs font-semibold bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 transition">Reset</button>
+              <button onclick="goToStep(2)" class="w-full flex-2 py-2 text-xs font-bold bg-pempek text-white rounded-xl shadow-md shadow-orange-300/40 hover:bg-orange-500 transition flex items-center justify-center gap-1">
+                <span>Lanjut: Atur Kantong</span> ➡️
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Summary & Button -->
-        <div class="bg-white p-3.5 rounded-2xl shadow-xs border border-orange-100 space-y-2.5">
-          <div class="flex justify-between items-center text-xs font-bold">
-            <span class="text-amber-900">Total Orderan Ini:</span>
-            <span class="text-pempek text-base font-bold" id="totalBelanjaTxt">IDR 0</span>
+        <!-- ================= STEP 2 CONTENT: ATUR KANTONG ================= -->
+        <div id="orderStep2" class="hidden space-y-3">
+          <div class="bg-white p-3 rounded-2xl shadow-xs border border-orange-100 space-y-2.5">
+            <div class="flex justify-between items-center pb-2 border-b border-orange-100">
+              <div>
+                <span class="text-[10px] text-gray-400 block font-semibold">Pemesan:</span>
+                <span id="step2CustName" class="text-xs font-bold text-amber-950">-</span>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] text-gray-400 block font-semibold">Total Butir:</span>
+                <span id="step2TotalPieces" class="text-xs font-bold text-pempek">0 Butir/Pkt</span>
+              </div>
+            </div>
+
+            <!-- Mode Pemilihan: Auto vs Manual -->
+            <div class="flex gap-1.5">
+              <button type="button" onclick="setSplitMode(false)" id="btnModeSingle" class="flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-amber-900 text-white shadow-xs">
+                ⚡ Auto Standar
+              </button>
+              <button type="button" onclick="setSplitMode(true)" id="btnModeSplit" class="flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-orange-50 text-amber-900 border border-orange-200 hover:bg-orange-100">
+                🛠️ Custom Manual
+              </button>
+            </div>
+
+            <!-- Panel Pengaturan Kantong Manual -->
+            <div id="splitBagSection" class="hidden space-y-2 pt-1 border-t border-orange-100">
+              <div class="grid grid-cols-4 gap-1.5">
+                <button type="button" onclick="autoDistributeBags(5)" class="py-1 bg-amber-100 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-amber-200 text-center">
+                  Split 5 (S)
+                </button>
+                <button type="button" onclick="autoDistributeBags(10)" class="py-1 bg-amber-100 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-amber-200 text-center">
+                  Split 10 (M)
+                </button>
+                <button type="button" onclick="autoDistributeBags(15)" class="py-1 bg-amber-100 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-amber-200 text-center">
+                  Split 15 (L)
+                </button>
+                <button type="button" onclick="addManualBag('S')" class="py-1 bg-white border border-orange-200 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-orange-50 text-center">
+                  + Kantong
+                </button>
+              </div>
+
+              <!-- List Kantong yang Disusun -->
+              <div id="bagsListContainer" class="space-y-2 max-h-56 overflow-y-auto hide-scrollbar">
+                <!-- Rendered by JS -->
+              </div>
+
+              <div id="bagAllocStatus" class="text-[10px] text-center font-bold"></div>
+            </div>
           </div>
+
+          <!-- Bottom Action Buttons -->
           <div class="flex gap-2">
-            <button onclick="resetCart()" class="flex-1 py-2 text-xs font-semibold bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 transition">Reset</button>
-            <button onclick="submitOrder()" id="btnSubmitOrder" class="w-full flex-2 py-2 text-xs font-bold bg-pempek text-white rounded-xl shadow-md shadow-orange-300/40 hover:bg-orange-500 transition">Simpan Pesanan Masuk 📥</button>
+            <button onclick="goToStep(1)" class="py-2.5 px-4 text-xs font-semibold bg-white border border-orange-200 text-gray-600 rounded-xl hover:bg-orange-50 transition flex items-center gap-1">
+              ⬅️ <span>Kembali</span>
+            </button>
+            <button onclick="submitOrder()" id="btnSubmitOrder" class="flex-1 py-2.5 text-xs font-bold bg-pempek text-white rounded-xl shadow-md shadow-orange-300/40 hover:bg-orange-500 transition">
+              Simpan Pesanan Masuk 📥
+            </button>
           </div>
         </div>
       </section>
@@ -341,6 +375,7 @@
     let isSplitMode = false;
     let customBags = [];
     let editingOrderId = null;
+    let currentStep = 1;
 
     let stock = JSON.parse(localStorage.getItem('pempek_cia_stock')) || {
       cheese: 50,
@@ -547,6 +582,50 @@
       return res.join(' • ');
     }
 
+    // Wizard Step Navigation
+    function goToStep(step) {
+      if (step === 2) {
+        const cust = document.getElementById('custName').value.trim();
+        const totalPieces = Object.values(cart).reduce((a, b) => a + (b || 0), 0);
+        if (!cust) {
+          alert('Tolong isi nama pemesannya dulu ya!');
+          return;
+        }
+        if (totalPieces === 0) {
+          alert('Pilih minimal 1 menu pempek sebelum lanjut.');
+          return;
+        }
+
+        document.getElementById('step2CustName').innerText = cust;
+        document.getElementById('step2TotalPieces').innerText = `${totalPieces} Butir/Pkt`;
+
+        document.getElementById('orderStep1').classList.add('hidden');
+        document.getElementById('orderStep2').classList.remove('hidden');
+
+        document.getElementById('stepHeader1').className = 'flex items-center gap-1.5 text-xs font-bold text-gray-400';
+        document.getElementById('stepHeader1').querySelector('span').className = 'w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[10px]';
+
+        document.getElementById('stepHeader2').className = 'flex items-center gap-1.5 text-xs font-bold text-pempek';
+        document.getElementById('stepHeader2').querySelector('span').className = 'w-5 h-5 rounded-full bg-pempek text-white flex items-center justify-center text-[10px]';
+
+        if (isSplitMode && customBags.length === 0) {
+          autoDistributeBags(5);
+        } else if (isSplitMode) {
+          renderBagsList();
+        }
+      } else {
+        document.getElementById('orderStep2').classList.add('hidden');
+        document.getElementById('orderStep1').classList.remove('hidden');
+
+        document.getElementById('stepHeader1').className = 'flex items-center gap-1.5 text-xs font-bold text-pempek';
+        document.getElementById('stepHeader1').querySelector('span').className = 'w-5 h-5 rounded-full bg-pempek text-white flex items-center justify-center text-[10px]';
+
+        document.getElementById('stepHeader2').className = 'flex items-center gap-1.5 text-xs font-bold text-gray-400';
+        document.getElementById('stepHeader2').querySelector('span').className = 'w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[10px]';
+      }
+      currentStep = step;
+    }
+
     function renderMenu() {
       const container = document.getElementById('menuContainer');
       container.innerHTML = '';
@@ -573,7 +652,6 @@
         container.appendChild(div);
       });
       calculateTotal();
-      renderSplitSection();
     }
 
     function updateCart(id, delta) {
@@ -590,7 +668,6 @@
         cart[id] = parsed;
       }
       calculateTotal();
-      renderSplitSection();
     }
 
     function resetCart() {
@@ -602,25 +679,23 @@
       document.getElementById('editBanner').classList.add('hidden');
       document.getElementById('btnSubmitOrder').innerText = 'Simpan Pesanan Masuk 📥';
       setSplitMode(false);
+      goToStep(1);
       renderMenu();
     }
 
     function calculateTotal() {
       let total = 0;
-      let totalPieces = 0;
       Object.keys(cart).forEach(id => {
         const item = defaultMenu.find(m => m.id === id);
         if (item) {
           total += item.price * (cart[id] || 0);
-          totalPieces += (cart[id] || 0);
         }
       });
       document.getElementById('totalBelanjaTxt').innerText = `IDR ${total.toLocaleString()}`;
-      document.getElementById('totalItemsBadge').innerText = `${totalPieces} Butir/Pkt Dipilih`;
       return total;
     }
 
-    // ================= LOGIKA SPLIT KANTONG =================
+    // Split Mode Switcher
     function setSplitMode(val) {
       isSplitMode = val;
       const sec = document.getElementById('splitBagSection');
@@ -644,13 +719,6 @@
       }
     }
 
-    function renderSplitSection() {
-      if (isSplitMode) {
-        renderBagsList();
-      }
-    }
-
-    // Auto-Sort Fill per N Butir (5 = S, 10 = M, 15 = L)
     function autoDistributeBags(chunkLimit = 5) {
       customBags = [];
 
@@ -694,12 +762,10 @@
       renderBagsList();
     }
 
-    // Update Nilai Butir di Kantong Secara Dinamis & Auto Update Label Abu-Abu
     function updateBagValue(bagIdx, itemKey, val) {
       const parsed = parseInt(val) || 0;
       customBags[bagIdx].counts[itemKey] = parsed;
 
-      // Update langsung teks "(x butir)" tanpa merusak fokus kursor
       const c = customBags[bagIdx].counts || {};
       const totalInBag = Object.values(c).reduce((a, b) => a + (b || 0), 0);
       const labelEl = document.getElementById(`bag-count-label-${bagIdx}`);
@@ -793,7 +859,7 @@
       });
 
       if (cartSum === 0) {
-        statusEl.innerHTML = '<span class="text-gray-400">Pilih menu di atas terlebih dahulu.</span>';
+        statusEl.innerHTML = '<span class="text-gray-400">Pilih menu terlebih dahulu.</span>';
         return false;
       }
 
@@ -806,7 +872,7 @@
       }
     }
 
-    // ================= SUBMIT ORDER =================
+    // Submit Order
     function submitOrder() {
       const cust = document.getElementById('custName').value.trim();
       const itemsInCart = Object.keys(cart);
@@ -973,6 +1039,7 @@
       document.getElementById('btnSubmitOrder').innerText = 'Perbarui Pesanan 🔄';
 
       switchTab('order');
+      goToStep(1);
       renderMenu();
       renderStock();
       renderRecapAndReports();
