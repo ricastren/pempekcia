@@ -47,6 +47,11 @@
 </head>
 <body class="flex items-center justify-center min-h-screen p-4 select-none">
 
+  <!-- Toast Notifikasi Halus -->
+  <div id="toastNotif" class="fixed top-5 z-50 bg-amber-950 text-white text-xs font-semibold px-4 py-2 rounded-2xl shadow-xl transition-all duration-300 opacity-0 pointer-events-none transform -translate-y-2">
+    Pemberitahuan
+  </div>
+
   <!-- Frame Portrait 9:16 -->
   <div class="mobile-frame bg-creamy rounded-[40px] border-4 border-amber-900/10 flex flex-col overflow-hidden relative">
     
@@ -83,7 +88,7 @@
       <section id="tab-order" class="space-y-3">
         <div id="editBanner" class="hidden bg-amber-100 border border-amber-300 text-amber-900 p-2.5 rounded-xl flex justify-between items-center text-xs">
           <span class="font-bold">✏️ Mode Edit Pesanan</span>
-          <button onclick="cancelEditOrder()" class="text-[10px] bg-white px-2 py-1 rounded-md border border-amber-300 font-semibold text-red-600">Batal Edit</button>
+          <button type="button" onclick="cancelEditOrder()" class="text-[10px] bg-white px-2 py-1 rounded-md border border-amber-300 font-semibold text-red-600">Batal Edit</button>
         </div>
 
         <!-- Step Indicator -->
@@ -120,8 +125,8 @@
               <span class="text-pempek text-base font-bold" id="totalBelanjaTxt">IDR 0</span>
             </div>
             <div class="flex gap-2">
-              <button onclick="resetCart()" class="flex-1 py-2 text-xs font-semibold bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 transition">Reset</button>
-              <button onclick="goToStep(2)" class="w-full flex-2 py-2 text-xs font-bold bg-pempek text-white rounded-xl shadow-md shadow-orange-300/40 hover:bg-orange-500 transition flex items-center justify-center gap-1">
+              <button type="button" onclick="resetCart()" class="flex-1 py-2 text-xs font-semibold bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 transition">Reset</button>
+              <button type="button" onclick="goToStep(2)" class="w-full flex-2 py-2 text-xs font-bold bg-pempek text-white rounded-xl shadow-md shadow-orange-300/40 hover:bg-orange-500 transition flex items-center justify-center gap-1">
                 <span>Lanjut: Atur Kantong</span> ➡️
               </button>
             </div>
@@ -174,10 +179,10 @@
           </div>
 
           <div class="flex gap-2">
-            <button onclick="goToStep(1)" class="py-2.5 px-4 text-xs font-semibold bg-white border border-orange-200 text-gray-600 rounded-xl hover:bg-orange-50 transition flex items-center gap-1">
+            <button type="button" onclick="goToStep(1)" class="py-2.5 px-4 text-xs font-semibold bg-white border border-orange-200 text-gray-600 rounded-xl hover:bg-orange-50 transition flex items-center gap-1">
               ⬅️ <span>Kembali</span>
             </button>
-            <button onclick="submitOrder()" id="btnSubmitOrder" class="flex-1 py-2.5 text-xs font-bold bg-pempek text-white rounded-xl shadow-md shadow-orange-300/40 hover:bg-orange-500 transition">
+            <button type="button" onclick="submitOrder()" id="btnSubmitOrder" class="flex-1 py-2.5 text-xs font-bold bg-pempek text-white rounded-xl shadow-md shadow-orange-300/40 hover:bg-orange-500 transition">
               Simpan Pesanan Masuk 📥
             </button>
           </div>
@@ -214,10 +219,10 @@
         </div>
 
         <div class="space-y-2 pt-1">
-          <button onclick="openSheetModal('A3')" class="w-full py-2.5 bg-amber-900 text-white rounded-2xl text-xs font-bold shadow-md hover:bg-amber-950 transition flex items-center justify-center gap-2">
+          <button type="button" onclick="openSheetModal('A3')" class="w-full py-2.5 bg-amber-900 text-white rounded-2xl text-xs font-bold shadow-md hover:bg-amber-950 transition flex items-center justify-center gap-2">
             <span>📄</span> Download Lembar A3 (35 Stiker/Lembar)
           </button>
-          <button onclick="openSheetModal('A4')" class="w-full py-2.5 bg-orange-600 text-white rounded-2xl text-xs font-bold shadow-md hover:bg-orange-700 transition flex items-center justify-center gap-2">
+          <button type="button" onclick="openSheetModal('A4')" class="w-full py-2.5 bg-orange-600 text-white rounded-2xl text-xs font-bold shadow-md hover:bg-orange-700 transition flex items-center justify-center gap-2">
             <span>📄</span> Download Lembar A4 (15 Stiker/Lembar)
           </button>
         </div>
@@ -264,10 +269,10 @@
           <div id="stockList" class="space-y-1.5"></div>
         </div>
 
-        <button onclick="applyStockChanges()" class="w-full py-2.5 bg-amber-900 text-white rounded-xl text-xs font-semibold shadow hover:bg-amber-950 transition">Perbarui Stok Sekarang</button>
+        <button type="button" onclick="applyStockChanges()" class="w-full py-2.5 bg-amber-900 text-white rounded-xl text-xs font-semibold shadow hover:bg-amber-950 transition">Perbarui Stok Sekarang</button>
       </section>
 
-      <!-- ================= TAB 5: LABA & PENGATURAN 2 BARIS ================= -->
+      <!-- ================= TAB 5: LABA & PENGATURAN RESEP ================= -->
       <section id="tab-report" class="hidden space-y-3">
         <div class="grid grid-cols-2 gap-2">
           <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl">
@@ -302,16 +307,14 @@
             <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-purple-500 inline-block"></span> Pkt Favorit</span>
           </div>
 
-          <div id="stackedBarChartContainer" class="h-56 flex items-end gap-3 pt-6 px-2 overflow-x-auto hide-scrollbar border-b border-orange-200 relative">
-            <!-- Rendered by JS -->
-          </div>
+          <div id="stackedBarChartContainer" class="h-56 flex items-end gap-3 pt-6 px-2 overflow-x-auto hide-scrollbar border-b border-orange-200 relative"></div>
         </div>
 
-        <!-- 1. Master Harga Bahan -->
+        <!-- 1. Master Harga Bahan (2 Baris) -->
         <div class="bg-white p-3.5 rounded-2xl border border-orange-100 shadow-xs space-y-2.5">
           <div class="flex justify-between items-center border-b border-orange-100 pb-1.5">
             <h3 class="text-xs font-bold text-amber-950">⚙️ Master Harga Bahan (2 Baris)</h3>
-            <button onclick="addMasterIngredient()" class="text-[9px] bg-pempek text-white font-bold px-2 py-0.5 rounded-md">+ Bahan</button>
+            <button type="button" onclick="addMasterIngredient()" class="text-[9px] bg-pempek text-white font-bold px-2 py-0.5 rounded-md">+ Bahan</button>
           </div>
           <div id="masterIngredientsContainer" class="space-y-2 text-xs max-h-56 overflow-y-auto hide-scrollbar"></div>
         </div>
@@ -329,23 +332,23 @@
 
     <!-- Bottom Navigation Bar -->
     <nav class="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-orange-100 px-3 py-2 flex justify-between items-center rounded-b-[36px]">
-      <button onclick="switchTab('order')" id="nav-order" class="flex flex-col items-center gap-0.5 text-pempek flex-1">
+      <button type="button" onclick="switchTab('order')" id="nav-order" class="flex flex-col items-center gap-0.5 text-pempek flex-1">
         <span class="text-base">📝</span>
         <span class="text-[9.5px] font-bold">Input PO</span>
       </button>
-      <button onclick="switchTab('recap')" id="nav-recap" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek flex-1">
+      <button type="button" onclick="switchTab('recap')" id="nav-recap" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek flex-1">
         <span class="text-base">🥣</span>
         <span class="text-[9.5px] font-bold">Dapur/PO</span>
       </button>
-      <button onclick="switchTab('orders-list')" id="nav-orders-list" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek flex-1">
+      <button type="button" onclick="switchTab('orders-list')" id="nav-orders-list" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek flex-1">
         <span class="text-base">📋</span>
         <span class="text-[9.5px] font-bold">Pesanan</span>
       </button>
-      <button onclick="switchTab('stock')" id="nav-stock" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek flex-1">
+      <button type="button" onclick="switchTab('stock')" id="nav-stock" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek flex-1">
         <span class="text-base">📦</span>
         <span class="text-[9.5px] font-bold">Stok</span>
       </button>
-      <button onclick="switchTab('report')" id="nav-report" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek flex-1">
+      <button type="button" onclick="switchTab('report')" id="nav-report" class="flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek flex-1">
         <span class="text-base">💰</span>
         <span class="text-[9.5px] font-bold">Laba</span>
       </button>
@@ -360,13 +363,13 @@
           <h3 id="modalSheetTitle" class="text-xs font-bold text-amber-950">Lembaran Kertas Siap Cetak 📄</h3>
           <span id="modalSheetSubtitle" class="text-[10px] text-gray-400">Sisa slot diisi stiker cadangan polos</span>
         </div>
-        <button onclick="closeSheetModal()" class="text-gray-400 hover:text-gray-600 font-bold text-base">✕</button>
+        <button type="button" onclick="closeSheetModal()" class="text-gray-400 hover:text-gray-600 font-bold text-base">✕</button>
       </div>
 
       <div class="flex-1 overflow-y-auto hide-scrollbar p-1 space-y-3" id="sheetContainer"></div>
 
       <div class="flex gap-2 pt-2 border-t">
-        <button onclick="closeSheetModal()" class="w-full py-2 bg-gray-100 text-gray-700 text-xs font-semibold rounded-xl hover:bg-gray-200">Tutup</button>
+        <button type="button" onclick="closeSheetModal()" class="w-full py-2 bg-gray-100 text-gray-700 text-xs font-semibold rounded-xl hover:bg-gray-200">Tutup</button>
       </div>
     </div>
   </div>
@@ -383,6 +386,19 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+
+    // Toast halus tanpa popup alert mengganggu
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotif');
+      if (!toast) return;
+      toast.innerText = msg;
+      toast.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'pointer-events-none', '-translate-y-2');
+      }, 1600);
+    }
 
     const defaultIngredients = {
       'ikan': { name: 'Daging Ikan Giling', price: 106000, qty: 1000, unit: 'gram' },
@@ -447,25 +463,20 @@
     let defaultMenu = JSON.parse(localStorage.getItem('pempek_cia_menu')) || defaultMenuList;
     let cukoRecipeData = JSON.parse(localStorage.getItem('pempek_cia_cukorecipe')) || defaultCukoRecipe;
 
+    // Menyimpan state accordion mana yang lagi dibuka supaya tidak otomatis nutup
+    let openAccordions = {};
+
     let cart = {};
     let isSplitMode = false;
     let customBags = [];
     let editingOrderId = null;
 
     let stock = JSON.parse(localStorage.getItem('pempek_cia_stock')) || {
-      cheese: 50,
-      kulit: 50,
-      lenjer: 50,
-      adaan: 50,
-      selam: 50
+      cheese: 50, kulit: 50, lenjer: 50, adaan: 50, selam: 50
     };
 
     let packagingStock = JSON.parse(localStorage.getItem('pempek_cia_packaging')) || {
-      cuko_s: 50,
-      cuko_l: 50,
-      pempek_s: 50,
-      pempek_m: 50,
-      pempek_l: 50
+      cuko_s: 50, cuko_l: 50, pempek_s: 50, pempek_m: 50, pempek_l: 50
     };
 
     let orders = JSON.parse(localStorage.getItem('pempek_cia_orders')) || [];
@@ -495,7 +506,6 @@
       }
     }
 
-    // Listener Realtime Firestore Stabil
     function initFirebaseRealtime() {
       setCloudStatus('syncing', 'Menghubungkan...');
 
@@ -509,14 +519,9 @@
           localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
           renderStock();
         } else {
-          db.collection('data').doc('stock').set({
-            pieces: stock,
-            packaging: packagingStock
-          }, { merge: true });
+          db.collection('data').doc('stock').set({ pieces: stock, packaging: packagingStock }, { merge: true });
         }
-      }, (err) => {
-        console.warn('Firestore stock error:', err);
-      });
+      }, (err) => console.warn('Firestore stock error:', err));
 
       // 2. Orders Listener
       db.collection('data').doc('orders').onSnapshot((doc) => {
@@ -566,13 +571,8 @@
       setCloudStatus('syncing', 'Menyimpan...');
       try {
         await Promise.all([
-          db.collection('data').doc('stock').set({
-            pieces: stock,
-            packaging: packagingStock
-          }, { merge: true }),
-          db.collection('data').doc('orders').set({
-            list: orders
-          }, { merge: true }),
+          db.collection('data').doc('stock').set({ pieces: stock, packaging: packagingStock }, { merge: true }),
+          db.collection('data').doc('orders').set({ list: orders }, { merge: true }),
           db.collection('data').doc('recipes_master').set({
             ingredients: masterIngredients,
             menu: defaultMenu,
@@ -695,11 +695,11 @@
         const cust = document.getElementById('custName').value.trim();
         const totalPieces = Object.values(cart).reduce((a, b) => a + (b || 0), 0);
         if (!cust) {
-          alert('Tolong isi nama pemesannya dulu ya!');
+          showToast('⚠️ Isi nama pemesan dulu ya!');
           return;
         }
         if (totalPieces === 0) {
-          alert('Pilih minimal 1 menu pempek sebelum lanjut.');
+          showToast('⚠️ Pilih minimal 1 menu pempek.');
           return;
         }
 
@@ -797,9 +797,9 @@
             <div class="text-xs font-semibold text-pempek mt-0.5">IDR ${item.price.toLocaleString()}</div>
           </div>
           <div class="flex items-center gap-1.5 bg-orange-50 p-1 rounded-xl border border-orange-200">
-            <button onclick="updateCart('${item.id}', -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded-lg text-amber-900 text-xs font-bold shadow-xs hover:bg-orange-100">-</button>
+            <button type="button" onclick="updateCart('${item.id}', -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded-lg text-amber-900 text-xs font-bold shadow-xs hover:bg-orange-100">-</button>
             <input type="number" min="0" value="${qty}" oninput="setCartInput('${item.id}', this.value)" onfocus="this.select()" class="w-10 text-center text-xs font-bold text-amber-950 bg-white rounded-lg border border-orange-200 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500">
-            <button onclick="updateCart('${item.id}', 1)" class="w-6 h-6 flex items-center justify-center bg-pempek text-white rounded-lg text-xs font-bold shadow-xs hover:bg-orange-500">+</button>
+            <button type="button" onclick="updateCart('${item.id}', 1)" class="w-6 h-6 flex items-center justify-center bg-pempek text-white rounded-lg text-xs font-bold shadow-xs hover:bg-orange-500">+</button>
           </div>
         `;
         container.appendChild(div);
@@ -896,7 +896,7 @@
           bCounts[itemKey] = (bCounts[itemKey] || 0) + 1;
         });
         let targetSize = chunkLimit <= 5 ? 'S' : (chunkLimit <= 10 ? 'M' : 'L');
-        customBags.push({
+        bags.push({
           size: targetSize,
           counts: bCounts
         });
@@ -973,7 +973,7 @@
               </select>
               <span id="bag-count-label-${idx}" class="text-gray-500 font-medium">(${totalInBag} butir)</span>
             </div>
-            <button onclick="removeBag(${idx})" class="text-red-600 font-bold hover:text-red-800">Hapus</button>
+            <button type="button" onclick="removeBag(${idx})" class="text-red-600 font-bold hover:text-red-800">Hapus</button>
           </div>
           <div class="grid grid-cols-6 gap-1 text-[9px] font-semibold text-center">
             ${itemKeys.map(k => `
@@ -1020,10 +1020,10 @@
       }
 
       if (!mismatch) {
-        statusEl.innerHTML = '<span class="text-emerald-700">✅ Pembagian kantong sudah pas persis dengan pesanan!</span>';
+        statusEl.innerHTML = '<span class="text-emerald-700">✅ Pembagian kantong pas persis!</span>';
         return true;
       } else {
-        statusEl.innerHTML = `<span class="text-rose-600">⚠️ Jumlah butir di kantong (${bagsSum}) belum sama dengan pesanan (${cartSum}).</span>`;
+        statusEl.innerHTML = `<span class="text-rose-600">⚠️ Butir di kantong (${bagsSum}) belum sama dengan pesanan (${cartSum}).</span>`;
         return false;
       }
     }
@@ -1063,27 +1063,22 @@
       const itemsInCart = Object.keys(cart);
 
       if (!cust) {
-        alert('Tolong isi nama pemesannya dulu ya!');
+        showToast('⚠️ Isi nama pemesan dulu ya!');
         return;
       }
       if (itemsInCart.length === 0) {
-        alert('Pilih minimal 1 menu pempek.');
+        showToast('⚠️ Pilih minimal 1 menu.');
         return;
       }
 
       if (isSplitMode && !checkBagAllocation()) {
-        alert('Jumlah butir di kantong-kantong split belum sama dengan pesanan. Klik salah satu tombol "Split" atau samakan angkanya dulu ya!');
+        showToast('⚠️ Jumlah butir kantong belum sesuai.');
         return;
       }
 
       let gross = 0;
       let orderSummaryCounts = {
-        selam: 0,
-        lenjer: 0,
-        adaan: 0,
-        kulit: 0,
-        cheese: 0,
-        pkt_favorit: 0
+        selam: 0, lenjer: 0, adaan: 0, kulit: 0, cheese: 0, pkt_favorit: 0
       };
 
       itemsInCart.forEach(id => {
@@ -1127,8 +1122,7 @@
       localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
 
       syncToCloud();
-
-      alert(`✅ Pesanan Kak ${cust} berhasil disimpan!`);
+      showToast(`✅ Pesanan Kak ${cust} disimpan!`);
 
       resetCart();
       renderStock();
@@ -1140,10 +1134,6 @@
       if (idx === -1) return;
 
       const order = orders[idx];
-      if (!confirm(`Yakin ingin menghapus pesanan atas nama "${order.cust}"? Stok pempek & kemasan akan otomatis dikembalikan.`)) {
-        return;
-      }
-
       const oc = order.counts || {};
       for (let id in oc) {
         const qty = oc[id];
@@ -1170,7 +1160,7 @@
       localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
 
       syncToCloud();
-
+      showToast('🗑️ Pesanan berhasil dihapus');
       renderStock();
       renderRecapAndReports();
     }
@@ -1254,6 +1244,7 @@
       return Math.round(totalBatchCost / batchSize);
     }
 
+    // Save Master Bahan Baku Kustom
     function saveSingleIngredient(key) {
       const nameInput = document.getElementById(`ing_name_${key}`);
       const priceInput = document.getElementById(`ing_price_${key}`);
@@ -1274,94 +1265,133 @@
 
         updatePackageHpp();
         syncToCloud();
-
         renderMasterAndRecipes();
         renderRecapAndReports();
-        alert(`✅ Bahan "${masterIngredients[key].name}" berhasil disimpan!`);
+        showToast(`✅ Bahan "${masterIngredients[key].name}" disimpan!`);
       }
     }
 
-    function saveSingleRecipe(itemId) {
+    // Membaca isi DOM saat ini ke dalam object resep
+    function readCurrentRecipeFromDOM(itemId) {
       const item = defaultMenu.find(m => m.id === itemId);
       if (!item) return;
 
       const batchInput = document.getElementById(`menu_batch_${itemId}`);
       if (batchInput) item.batchSize = parseInt(batchInput.value) || 60;
 
-      let newRecipe = {};
-      for (let ingKey in masterIngredients) {
+      if (!item.recipe) item.recipe = {};
+      for (let ingKey in item.recipe) {
         const inputEl = document.getElementById(`recipe_gram_${itemId}_${ingKey}`);
         if (inputEl) {
-          const g = parseFloat(inputEl.value) || 0;
-          if (g > 0) newRecipe[ingKey] = g;
+          const val = parseFloat(inputEl.value);
+          item.recipe[ingKey] = isNaN(val) ? 0 : val;
         }
       }
-      item.recipe = newRecipe;
-      item.hpp = calculateHppFromRecipe(newRecipe, item.batchSize);
-
-      updatePackageHpp();
-      syncToCloud();
-
-      renderMasterAndRecipes();
-      renderRecapAndReports();
-      alert(`✅ Resep dan HPP untuk "${item.name}" berhasil disimpan!`);
     }
 
+    // Save Resep Menu
+    function saveSingleRecipe(itemId) {
+      readCurrentRecipeFromDOM(itemId);
+      const item = defaultMenu.find(m => m.id === itemId);
+      if (!item) return;
+
+      item.hpp = calculateHppFromRecipe(item.recipe, item.batchSize);
+      updatePackageHpp();
+      syncToCloud();
+      renderMasterAndRecipes();
+      renderRecapAndReports();
+      showToast(`✅ Resep ${item.name} disimpan!`);
+    }
+
+    // Tambah Bahan ke Resep Pempek (Tanpa refresh, langsung muncul)
     function addIngredientToRecipe(itemId) {
+      readCurrentRecipeFromDOM(itemId);
       const selectEl = document.getElementById(`select_add_ing_${itemId}`);
-      const ingKey = selectEl.value;
-      if (!ingKey) return;
+      const ingKey = selectEl ? selectEl.value : null;
+      if (!ingKey) {
+        showToast('⚠️ Pilih bahan dulu di dropdown');
+        return;
+      }
 
       const item = defaultMenu.find(m => m.id === itemId);
       if (item) {
         if (!item.recipe) item.recipe = {};
-        item.recipe[ingKey] = 10;
-        saveSingleRecipe(itemId);
+        item.recipe[ingKey] = 50; // Nilai awal default
+        item.hpp = calculateHppFromRecipe(item.recipe, item.batchSize);
+        openAccordions[itemId] = true; // Pastikan accordion tetap terbuka
+        updatePackageHpp();
+        syncToCloud();
+        renderMasterAndRecipes();
+        renderRecapAndReports();
+        showToast(`➕ Bahan ditambahkan ke ${item.name}`);
       }
     }
 
     function removeIngredientFromRecipe(itemId, ingKey) {
+      readCurrentRecipeFromDOM(itemId);
       const item = defaultMenu.find(m => m.id === itemId);
       if (item && item.recipe) {
         delete item.recipe[ingKey];
-        saveSingleRecipe(itemId);
+        item.hpp = calculateHppFromRecipe(item.recipe, item.batchSize);
+        openAccordions[itemId] = true;
+        updatePackageHpp();
+        syncToCloud();
+        renderMasterAndRecipes();
+        renderRecapAndReports();
+        showToast('Bahan dihapus dari resep');
+      }
+    }
+
+    // Resep Cuko
+    function readCurrentCukoFromDOM() {
+      const yieldInput = document.getElementById('cuko_batch_yield');
+      if (yieldInput) cukoRecipeData.batchYieldMl = parseFloat(yieldInput.value) || 1000;
+
+      if (!cukoRecipeData.recipe) cukoRecipeData.recipe = {};
+      for (let ingKey in cukoRecipeData.recipe) {
+        const inputEl = document.getElementById(`recipe_gram_cuko_${ingKey}`);
+        if (inputEl) {
+          const val = parseFloat(inputEl.value);
+          cukoRecipeData.recipe[ingKey] = isNaN(val) ? 0 : val;
+        }
       }
     }
 
     function saveCukoRecipe() {
-      const yieldInput = document.getElementById('cuko_batch_yield');
-      if (yieldInput) cukoRecipeData.batchYieldMl = parseFloat(yieldInput.value) || 1000;
-
-      let newRecipe = {};
-      for (let ingKey in masterIngredients) {
-        const inputEl = document.getElementById(`recipe_gram_cuko_${ingKey}`);
-        if (inputEl) {
-          const g = parseFloat(inputEl.value) || 0;
-          if (g > 0) newRecipe[ingKey] = g;
-        }
-      }
-      cukoRecipeData.recipe = newRecipe;
-
+      readCurrentCukoFromDOM();
       syncToCloud();
       renderMasterAndRecipes();
       renderRecapAndReports();
-      alert(`✅ Resep Kuah Cuko berhasil disimpan!`);
+      showToast(`✅ Resep Cuko disimpan!`);
     }
 
     function addIngredientToCuko() {
+      readCurrentCukoFromDOM();
       const selectEl = document.getElementById(`select_add_ing_cuko`);
-      const ingKey = selectEl.value;
-      if (!ingKey) return;
+      const ingKey = selectEl ? selectEl.value : null;
+      if (!ingKey) {
+        showToast('⚠️ Pilih bahan cuko dulu');
+        return;
+      }
 
       if (!cukoRecipeData.recipe) cukoRecipeData.recipe = {};
-      cukoRecipeData.recipe[ingKey] = 10;
-      saveCukoRecipe();
+      cukoRecipeData.recipe[ingKey] = 50;
+      openAccordions['cuko'] = true;
+      syncToCloud();
+      renderMasterAndRecipes();
+      renderRecapAndReports();
+      showToast('➕ Bahan ditambahkan ke Cuko');
     }
 
     function removeIngredientFromCuko(ingKey) {
+      readCurrentCukoFromDOM();
       if (cukoRecipeData.recipe) {
         delete cukoRecipeData.recipe[ingKey];
-        saveCukoRecipe();
+        openAccordions['cuko'] = true;
+        syncToCloud();
+        renderMasterAndRecipes();
+        renderRecapAndReports();
+        showToast('Bahan dihapus dari Cuko');
       }
     }
 
@@ -1379,9 +1409,12 @@
     }
 
     function toggleRecipeAccordion(itemId) {
+      openAccordions[itemId] = !openAccordions[itemId];
       const contentEl = document.getElementById(`accordion_content_${itemId}`);
       const arrowEl = document.getElementById(`accordion_arrow_${itemId}`);
-      if (contentEl.classList.contains('hidden')) {
+      if (!contentEl || !arrowEl) return;
+
+      if (openAccordions[itemId]) {
         contentEl.classList.remove('hidden');
         arrowEl.style.transform = 'rotate(180deg)';
       } else {
@@ -1391,33 +1424,36 @@
     }
 
     function renderMasterAndRecipes() {
+      // 1. Master Bahan Baku
       const ingContainer = document.getElementById('masterIngredientsContainer');
-      if (!ingContainer) return;
-      ingContainer.innerHTML = '';
-      for (let key in masterIngredients) {
-        const ing = masterIngredients[key];
-        const div = document.createElement('div');
-        div.className = 'bg-orange-50/50 p-2 rounded-xl border border-orange-100 space-y-1.5';
-        div.innerHTML = `
-          <div class="flex items-center justify-between gap-1.5">
-            <input type="text" id="ing_name_${key}" value="${ing.name}" class="flex-1 text-xs font-bold bg-white border border-orange-200 rounded px-2 py-1">
-            <button onclick="saveSingleIngredient('${key}')" class="px-3 py-1 bg-amber-900 text-white rounded-lg text-[10px] font-bold shadow-xs hover:bg-amber-950">Save</button>
-            <button onclick="deleteMasterIngredient('${key}')" class="text-red-500 font-bold px-1.5 text-xs">✕</button>
-          </div>
-          <div class="flex items-center gap-1.5 text-[10px]">
-            <span class="text-gray-500 font-semibold">Rp</span>
-            <input type="number" id="ing_price_${key}" value="${ing.price}" class="w-16 text-center font-bold bg-white border border-orange-200 rounded py-0.5" placeholder="Harga">
-            <span class="text-gray-500 font-semibold">per</span>
-            <input type="number" id="ing_qty_${key}" value="${ing.qty || 1000}" class="w-12 text-center font-bold bg-white border border-orange-200 rounded py-0.5" placeholder="Qty">
-            <select id="ing_unit_${key}" class="flex-1 bg-white font-bold border border-orange-200 rounded py-0.5 px-1">
-              <option value="gram" ${ing.unit === 'gram' ? 'selected' : ''}>gram</option>
-              <option value="ml" ${ing.unit === 'ml' ? 'selected' : ''}>ml</option>
-            </select>
-          </div>
-        `;
-        ingContainer.appendChild(div);
+      if (ingContainer) {
+        ingContainer.innerHTML = '';
+        for (let key in masterIngredients) {
+          const ing = masterIngredients[key];
+          const div = document.createElement('div');
+          div.className = 'bg-orange-50/50 p-2 rounded-xl border border-orange-100 space-y-1.5';
+          div.innerHTML = `
+            <div class="flex items-center justify-between gap-1.5">
+              <input type="text" id="ing_name_${key}" value="${ing.name}" class="flex-1 text-xs font-bold bg-white border border-orange-200 rounded px-2 py-1">
+              <button type="button" onclick="saveSingleIngredient('${key}')" class="px-3 py-1 bg-amber-900 text-white rounded-lg text-[10px] font-bold shadow-xs hover:bg-amber-950">Save</button>
+              <button type="button" onclick="deleteMasterIngredient('${key}')" class="text-red-500 font-bold px-1.5 text-xs">✕</button>
+            </div>
+            <div class="flex items-center gap-1.5 text-[10px]">
+              <span class="text-gray-500 font-semibold">Rp</span>
+              <input type="number" id="ing_price_${key}" value="${ing.price}" class="w-16 text-center font-bold bg-white border border-orange-200 rounded py-0.5" placeholder="Harga">
+              <span class="text-gray-500 font-semibold">per</span>
+              <input type="number" id="ing_qty_${key}" value="${ing.qty || 1000}" class="w-12 text-center font-bold bg-white border border-orange-200 rounded py-0.5" placeholder="Qty">
+              <select id="ing_unit_${key}" class="flex-1 bg-white font-bold border border-orange-200 rounded py-0.5 px-1">
+                <option value="gram" ${ing.unit === 'gram' ? 'selected' : ''}>gram</option>
+                <option value="ml" ${ing.unit === 'ml' ? 'selected' : ''}>ml</option>
+              </select>
+            </div>
+          `;
+          ingContainer.appendChild(div);
+        }
       }
 
+      // 2. Accordion Resep Pempek & Cuko
       const accordionContainer = document.getElementById('recipeAccordionContainer');
       if (!accordionContainer) return;
       accordionContainer.innerHTML = '';
@@ -1441,7 +1477,7 @@
               <div class="flex items-center gap-1">
                 <input type="number" min="0" id="recipe_gram_${item.id}_${ingKey}" value="${val}" class="w-14 text-center font-bold bg-white border border-orange-200 rounded py-0.5">
                 <span class="text-[9px] text-gray-400 w-8">${ing.unit || 'gram'}</span>
-                <button onclick="removeIngredientFromRecipe('${item.id}', '${ingKey}')" class="text-red-500 font-bold px-1 text-xs">✕</button>
+                <button type="button" onclick="removeIngredientFromRecipe('${item.id}', '${ingKey}')" class="text-red-500 font-bold px-1 text-xs">✕</button>
               </div>
             </div>
           `;
@@ -1454,16 +1490,18 @@
           }
         }
 
+        const isOpen = !!openAccordions[item.id];
+
         itemCard.innerHTML = `
           <div onclick="toggleRecipeAccordion('${item.id}')" class="flex justify-between items-center p-2.5 bg-white cursor-pointer hover:bg-orange-50/80 transition">
             <div class="flex items-center gap-2">
               <span class="font-bold text-amber-950 text-xs">📖 Resep ${item.name}</span>
               <span class="text-[9px] bg-orange-100 text-orange-900 font-bold px-2 py-0.5 rounded-md">HPP: IDR ${currentHpp.toLocaleString()}</span>
             </div>
-            <span id="accordion_arrow_${item.id}" class="text-amber-900 font-bold transition-transform duration-200">▼</span>
+            <span id="accordion_arrow_${item.id}" class="text-amber-900 font-bold transition-transform duration-200" style="transform: ${isOpen ? 'rotate(180deg)' : 'rotate(0deg)'};">▼</span>
           </div>
 
-          <div id="accordion_content_${item.id}" class="hidden p-3 space-y-2.5 border-t border-orange-100 bg-white/60">
+          <div id="accordion_content_${item.id}" class="${isOpen ? '' : 'hidden'} p-3 space-y-2.5 border-t border-orange-100 bg-white/60">
             <div class="flex justify-between items-center text-xs">
               <span class="font-semibold text-gray-700">Hasil Jadi Per Batch:</span>
               <div class="flex items-center gap-1">
@@ -1481,10 +1519,10 @@
                 <option value="">-- Pilih Bahan untuk Ditambah --</option>
                 ${availableOptions}
               </select>
-              <button onclick="addIngredientToRecipe('${item.id}')" class="px-2.5 py-1 bg-pempek text-white rounded font-bold text-[10px]">+ Tambah</button>
+              <button type="button" onclick="addIngredientToRecipe('${item.id}')" class="px-2.5 py-1 bg-pempek text-white rounded font-bold text-[10px] hover:bg-orange-500">+ Tambah</button>
             </div>
 
-            <button onclick="saveSingleRecipe('${item.id}')" class="w-full py-1.5 bg-amber-900 text-white rounded-lg text-xs font-bold shadow hover:bg-amber-950 transition">
+            <button type="button" onclick="saveSingleRecipe('${item.id}')" class="w-full py-1.5 bg-amber-900 text-white rounded-lg text-xs font-bold shadow hover:bg-amber-950 transition">
               Simpan Resep ${item.name} 💾
             </button>
           </div>
@@ -1492,7 +1530,7 @@
         accordionContainer.appendChild(itemCard);
       });
 
-      // Render Resep Cuko
+      // Render Resep Cuko Khusus
       const cukoHpp = calculateBatchCost(cukoRecipeData.recipe);
       const cukoCard = document.createElement('div');
       cukoCard.className = 'bg-amber-50/50 rounded-xl border border-amber-200 overflow-hidden';
@@ -1509,7 +1547,7 @@
             <div class="flex items-center gap-1">
               <input type="number" min="0" id="recipe_gram_cuko_${ingKey}" value="${val}" class="w-14 text-center font-bold bg-white border border-orange-200 rounded py-0.5">
               <span class="text-[9px] text-gray-400 w-8">${ing.unit || 'gram'}</span>
-              <button onclick="removeIngredientFromCuko('${ingKey}')" class="text-red-500 font-bold px-1 text-xs">✕</button>
+              <button type="button" onclick="removeIngredientFromCuko('${ingKey}')" class="text-red-500 font-bold px-1 text-xs">✕</button>
             </div>
           </div>
         `;
@@ -1522,16 +1560,18 @@
         }
       }
 
+      const isCukoOpen = !!openAccordions['cuko'];
+
       cukoCard.innerHTML = `
         <div onclick="toggleRecipeAccordion('cuko')" class="flex justify-between items-center p-2.5 bg-white cursor-pointer hover:bg-amber-50 transition">
           <div class="flex items-center gap-2">
             <span class="font-bold text-amber-950 text-xs">🥣 Resep Kuah Cuko</span>
             <span class="text-[9px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-md">Total Modal: IDR ${Math.round(cukoHpp).toLocaleString()}</span>
           </div>
-          <span id="accordion_arrow_cuko" class="text-amber-900 font-bold transition-transform duration-200">▼</span>
+          <span id="accordion_arrow_cuko" class="text-amber-900 font-bold transition-transform duration-200" style="transform: ${isCukoOpen ? 'rotate(180deg)' : 'rotate(0deg)'};">▼</span>
         </div>
 
-        <div id="accordion_content_cuko" class="hidden p-3 space-y-2.5 border-t border-amber-200 bg-white/60">
+        <div id="accordion_content_cuko" class="${isCukoOpen ? '' : 'hidden'} p-3 space-y-2.5 border-t border-amber-200 bg-white/60">
           <div class="flex justify-between items-center text-xs">
             <span class="font-semibold text-gray-700">Total Hasil Cuko (ml):</span>
             <div class="flex items-center gap-1">
@@ -1549,10 +1589,10 @@
               <option value="">-- Pilih Bahan untuk Ditambah --</option>
               ${cukoAvailableOpts}
             </select>
-            <button onclick="addIngredientToCuko()" class="px-2.5 py-1 bg-pempek text-white rounded font-bold text-[10px]">+ Tambah</button>
+            <button type="button" onclick="addIngredientToCuko()" class="px-2.5 py-1 bg-pempek text-white rounded font-bold text-[10px] hover:bg-orange-500">+ Tambah</button>
           </div>
 
-          <button onclick="saveCukoRecipe()" class="w-full py-1.5 bg-amber-900 text-white rounded-lg text-xs font-bold shadow hover:bg-amber-950 transition">
+          <button type="button" onclick="saveCukoRecipe()" class="w-full py-1.5 bg-amber-900 text-white rounded-lg text-xs font-bold shadow hover:bg-amber-950 transition">
             Simpan Resep Cuko 💾
           </button>
         </div>
@@ -1564,11 +1604,13 @@
       const newKey = 'ing_' + Date.now();
       masterIngredients[newKey] = { name: 'Bahan Baru', price: 10000, qty: 1000, unit: 'gram' };
       renderMasterAndRecipes();
+      showToast('Bahan baru ditambahkan di Master');
     }
 
     function deleteMasterIngredient(key) {
       delete masterIngredients[key];
       renderMasterAndRecipes();
+      showToast('Bahan dihapus dari Master');
     }
 
     function renderStackedBarChart(poDatesMap) {
@@ -1736,8 +1778,8 @@
                   ${packLabel || 'Tanpa Kemasan Tambahan'}
                 </div>
                 <div class="flex justify-end gap-1.5 pt-1.5 border-t border-orange-100">
-                  <button onclick="editOrder('${o.id}')" class="px-2.5 py-1 bg-white border border-orange-200 text-amber-900 rounded-lg text-[10px] font-bold hover:bg-orange-100">✏️ Edit</button>
-                  <button onclick="deleteOrder('${o.id}')" class="px-2.5 py-1 bg-red-50 border border-red-200 text-red-600 rounded-lg text-[10px] font-bold hover:bg-red-100">🗑️ Hapus</button>
+                  <button type="button" onclick="editOrder('${o.id}')" class="px-2.5 py-1 bg-white border border-orange-200 text-amber-900 rounded-lg text-[10px] font-bold hover:bg-orange-100">✏️ Edit</button>
+                  <button type="button" onclick="deleteOrder('${o.id}')" class="px-2.5 py-1 bg-red-50 border border-red-200 text-red-600 rounded-lg text-[10px] font-bold hover:bg-red-100">🗑️ Hapus</button>
                 </div>
               </div>
             `;
@@ -1862,7 +1904,7 @@
       const filteredOrders = orders.filter(o => o && o.poDate === currentPo);
 
       if (filteredOrders.length === 0) {
-        alert('Belum ada pesanan untuk dicetak di batch PO ini!');
+        showToast('⚠️ Belum ada pesanan di batch ini');
         return;
       }
 
@@ -2002,7 +2044,7 @@
       });
 
       if (!anyChange) {
-        alert('Masukkan angka penambahan (+) atau pengurangan (-) di kolom yang tersedia terlebih dahulu.');
+        showToast('⚠️ Masukkan angka penambahan/pengurangan');
         return;
       }
 
@@ -2011,8 +2053,7 @@
 
       syncToCloud();
       renderStock();
-
-      alert('Stok berhasil diperbarui dan disinkronkan! ✨');
+      showToast('✅ Stok berhasil diperbarui!');
     }
 
     function switchTab(tab) {
