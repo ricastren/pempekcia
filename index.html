@@ -267,7 +267,7 @@
         <button onclick="applyStockChanges()" class="w-full py-2.5 bg-amber-900 text-white rounded-xl text-xs font-semibold shadow hover:bg-amber-950 transition">Perbarui Stok Sekarang</button>
       </section>
 
-      <!-- ================= TAB 5: LABA & RAHASIA RESEP GRAMASI ================= -->
+      <!-- ================= TAB 5: LABA & ACCORDION RAHASIA RESEP ================= -->
       <section id="tab-report" class="hidden space-y-3">
         <div class="grid grid-cols-2 gap-2">
           <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl">
@@ -286,27 +286,25 @@
           <span class="text-[10px] text-amber-800/80 mt-1 block">*Omset dikurangi modal otomatis dari resep gramasi</span>
         </div>
 
-        <!-- 1. Master Harga Bahan Baku (Global) -->
+        <!-- 1. Master Harga Bahan Baku (Dengan Tombol Save Mandiri) -->
         <div class="bg-white p-3.5 rounded-2xl border border-orange-100 shadow-xs space-y-2.5">
           <div class="flex justify-between items-center border-b border-orange-100 pb-1.5">
-            <h3 class="text-xs font-bold text-amber-950">⚙️ Master Harga Bahan Baku (Per Gram)</h3>
-            <span class="text-[9px] text-orange-600 bg-orange-50 font-bold px-2 py-0.5 rounded-md">Berlaku untuk Semua Resep</span>
+            <h3 class="text-xs font-bold text-amber-950">⚙️ Master Harga Bahan Baku</h3>
+            <button onclick="addMasterIngredient()" class="text-[9px] bg-pempek text-white font-bold px-2 py-0.5 rounded-md">+ Bahan</button>
           </div>
-          <div id="masterIngredientsContainer" class="space-y-1.5 text-xs max-h-48 overflow-y-auto hide-scrollbar">
+          <div id="masterIngredientsContainer" class="space-y-2 text-xs max-h-52 overflow-y-auto hide-scrollbar">
             <!-- Rendered by JS -->
           </div>
         </div>
 
-        <!-- 2. Resep Gramasi Rahasia per Menu Satuan -->
+        <!-- 2. Accordion Dropdown Rahasia Resep per Menu (Tombol Save Mandiri per Menu) -->
         <div class="bg-white p-3.5 rounded-2xl border border-orange-100 shadow-xs space-y-2.5">
-          <div class="flex justify-between items-center border-b border-orange-100 pb-1.5">
-            <h3 class="text-xs font-bold text-amber-950">🤫 Rahasia Resep Gramasi per Satuan</h3>
-            <span class="text-[9px] text-rose-600 bg-rose-50 font-bold px-2 py-0.5 rounded-md">🤫 Super Rahasia</span>
+          <div class="border-b border-orange-100 pb-1.5">
+            <h3 class="text-xs font-bold text-amber-950">🤫 Rahasia Resep & Gramasi (Save Per Menu)</h3>
           </div>
-          <div id="recipeSettingsContainer" class="space-y-3 text-xs max-h-72 overflow-y-auto hide-scrollbar">
+          <div id="recipeAccordionContainer" class="space-y-2 text-xs">
             <!-- Rendered by JS -->
           </div>
-          <button onclick="saveAndCalculateRecipes()" class="w-full py-2.5 bg-amber-900 text-white rounded-xl text-xs font-semibold shadow hover:bg-amber-950 transition">Simpan Resep & Hitung HPP Otomatis ✨</button>
         </div>
       </section>
 
@@ -369,7 +367,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // 1. Master Harga Bahan Baku Global (Harga per Gram)
+    // 1. Master Harga Bahan Baku Global
     let masterIngredients = JSON.parse(localStorage.getItem('pempek_cia_ingredients')) || {
       'ikan': { name: 'Daging Ikan Giling', price: 60000, unit: 'kg' },
       'kulit_ikan': { name: 'Kulit Ikan Tenggiri/Gabus', price: 40000, unit: 'kg' },
@@ -385,12 +383,12 @@
       'keju': { name: 'Keju Melt', price: 85000, unit: 'kg' }
     };
 
-    // 2. Resep Gramasi Sesuai Takaran Rahasia Kamu (Dibagi total hasil jadi batch)
+    // 2. Resep Gramasi Sesuai Takaran Rahasia Kamu
     let defaultMenu = JSON.parse(localStorage.getItem('pempek_cia_menu')) || [
       { 
         id: 'kulit', name: 'Kulit (60 pcs)', price: 4000, hpp: 0, isPackage: false,
         batchSize: 60,
-        recipe: { kulit_ikan: 500, ikan: 250, air_es: 340, telur: 120, bawang_merah: 70, daun_bawang: 30, garam_gula: 30, kaldu: 15, minyak: 80, air_es: 60, sagu: 300, maizena_beras: 100 }
+        recipe: { kulit_ikan: 500, ikan: 250, air_es: 400, telur: 120, bawang_merah: 70, daun_bawang: 30, garam_gula: 30, kaldu: 15, minyak: 80, sagu: 300, maizena_beras: 100 }
       },
       { 
         id: 'adaan', name: 'Adaan (60 pcs)', price: 5000, hpp: 0, isPackage: false,
@@ -410,7 +408,7 @@
       { 
         id: 'selam', name: 'Kapal Selam Mini (70 pcs)', price: 6000, hpp: 0, isPackage: false,
         batchSize: 70,
-        recipe: { ikan: 1000, air_es: 500, minyak: 60, telur: 100, garam_gula: 75, kaldu: 18, sagu: 900, bawang_merah: 25, telur: 750 } 
+        recipe: { ikan: 1000, air_es: 500, minyak: 60, telur: 850, garam_gula: 75, kaldu: 18, sagu: 900, bawang_merah: 25 } 
       },
       { 
         id: 'pkt_favorit', 
@@ -1160,35 +1158,118 @@
       return Math.round(totalBatchCost / batchSize);
     }
 
-    // Render Master Bahan Baku & Resep Gramasi Sesuai Rahasia Dapur di Tab Laba
+    // Save Mandiri untuk Master Bahan Baku
+    function saveSingleIngredient(key) {
+      const nameInput = document.getElementById(`ing_name_${key}`);
+      const priceInput = document.getElementById(`ing_price_${key}`);
+      if (nameInput && priceInput) {
+        masterIngredients[key].name = nameInput.value.trim();
+        masterIngredients[key].price = parseFloat(priceInput.value) || 0;
+
+        // Hitung ulang semua HPP menu yang menggunakan bahan ini
+        defaultMenu.forEach(item => {
+          if (!item.isPackage) {
+            item.hpp = calculateHppFromRecipe(item.recipe, item.batchSize);
+          }
+        });
+
+        // Hitung HPP Paket Favorit
+        updatePackageHpp();
+
+        localStorage.setItem('pempek_cia_ingredients', JSON.stringify(masterIngredients));
+        localStorage.setItem('pempek_cia_menu', JSON.stringify(defaultMenu));
+
+        renderMasterAndRecipes();
+        renderRecapAndReports();
+        alert(`✅ Harga bahan "${masterIngredients[key].name}" berhasil disimpan & HPP menu di-update!`);
+      }
+    }
+
+    // Save Mandiri untuk Resep per Menu
+    function saveSingleRecipe(itemId) {
+      const item = defaultMenu.find(m => m.id === itemId);
+      if (!item) return;
+
+      const batchInput = document.getElementById(`menu_batch_${itemId}`);
+      if (batchInput) item.batchSize = parseInt(batchInput.value) || 60;
+
+      let newRecipe = {};
+      for (let ingKey in masterIngredients) {
+        const inputEl = document.getElementById(`recipe_gram_${itemId}_${ingKey}`);
+        if (inputEl) {
+          const g = parseFloat(inputEl.value) || 0;
+          if (g > 0) newRecipe[ingKey] = g;
+        }
+      }
+      item.recipe = newRecipe;
+      item.hpp = calculateHppFromRecipe(newRecipe, item.batchSize);
+
+      updatePackageHpp();
+
+      localStorage.setItem('pempek_cia_menu', JSON.stringify(defaultMenu));
+      renderMasterAndRecipes();
+      renderRecapAndReports();
+      alert(`✅ Resep dan HPP untuk "${item.name}" berhasil disimpan!`);
+    }
+
+    function updatePackageHpp() {
+      const favPkg = defaultMenu.find(m => m.id === 'pkt_favorit');
+      if (favPkg && favPkg.breakdown) {
+        let pkgHpp = 0;
+        for (let pKey in favPkg.breakdown) {
+          const pQty = favPkg.breakdown[pKey];
+          const subItem = defaultMenu.find(m => m.id === pKey);
+          if (subItem) pkgHpp += (subItem.hpp || 0) * pQty;
+        }
+        favPkg.hpp = pkgHpp;
+      }
+    }
+
+    // Toggle Accordion Dropdown
+    function toggleRecipeAccordion(itemId) {
+      const contentEl = document.getElementById(`accordion_content_${itemId}`);
+      const arrowEl = document.getElementById(`accordion_arrow_${itemId}`);
+      if (contentEl.classList.contains('hidden')) {
+        contentEl.classList.remove('hidden');
+        arrowEl.style.transform = 'rotate(180deg)';
+      } else {
+        contentEl.classList.add('hidden');
+        arrowEl.style.transform = 'rotate(0deg)';
+      }
+    }
+
+    // Render Master Bahan & Accordion Resep di Tab Laba
     function renderMasterAndRecipes() {
+      // 1. Master Bahan Baku
       const ingContainer = document.getElementById('masterIngredientsContainer');
       ingContainer.innerHTML = '';
       for (let key in masterIngredients) {
         const ing = masterIngredients[key];
         const div = document.createElement('div');
-        div.className = 'flex items-center justify-between bg-orange-50/50 p-2 rounded-xl border border-orange-100 gap-2';
+        div.className = 'flex items-center justify-between bg-orange-50/50 p-2 rounded-xl border border-orange-100 gap-1.5';
         div.innerHTML = `
-          <input type="text" id="ing_name_${key}" value="${ing.name}" class="w-32 text-xs font-bold bg-white border border-orange-200 rounded px-1.5 py-1">
+          <input type="text" id="ing_name_${key}" value="${ing.name}" class="w-28 text-xs font-bold bg-white border border-orange-200 rounded px-1.5 py-1">
           <div class="flex items-center gap-1">
             <span class="text-[10px] text-gray-500">Rp</span>
             <input type="number" id="ing_price_${key}" value="${ing.price}" class="w-16 text-center text-xs font-bold bg-white border border-orange-200 rounded px-1 py-1">
             <span class="text-[9px] text-gray-400">/${ing.unit}</span>
           </div>
+          <button onclick="saveSingleIngredient('${key}')" class="px-2 py-1 bg-amber-900 text-white rounded-lg text-[10px] font-bold shadow-xs hover:bg-amber-950">Save</button>
           <button onclick="deleteMasterIngredient('${key}')" class="text-red-500 font-bold px-1 text-xs">✕</button>
         `;
         ingContainer.appendChild(div);
       }
 
-      const recipeContainer = document.getElementById('recipeSettingsContainer');
-      recipeContainer.innerHTML = '';
+      // 2. Accordion Resep per Menu
+      const accordionContainer = document.getElementById('recipeAccordionContainer');
+      accordionContainer.innerHTML = '';
 
       defaultMenu.forEach(item => {
         if (item.isPackage) return;
 
         const currentHpp = calculateHppFromRecipe(item.recipe, item.batchSize);
-        const div = document.createElement('div');
-        div.className = 'p-2.5 bg-orange-50/40 rounded-xl border border-orange-100 space-y-2';
+        const itemCard = document.createElement('div');
+        itemCard.className = 'bg-orange-50/40 rounded-xl border border-orange-200 overflow-hidden';
 
         let recipeRowsHtml = '';
         const recipeObj = item.recipe || {};
@@ -1206,19 +1287,34 @@
           `;
         }
 
-        div.innerHTML = `
-          <div class="flex justify-between items-center border-b border-orange-100 pb-1">
+        itemCard.innerHTML = `
+          <!-- Header Dropdown (Bisa Diklik) -->
+          <div onclick="toggleRecipeAccordion('${item.id}')" class="flex justify-between items-center p-2.5 bg-white cursor-pointer hover:bg-orange-50/80 transition">
             <div class="flex items-center gap-2">
-              <span class="font-bold text-amber-950">${item.name}</span>
-              <span class="text-[9px] text-gray-500 bg-white px-1.5 py-0.5 rounded border">Hasil: <input type="number" id="menu_batch_${item.id}" value="${item.batchSize || 60}" class="w-10 text-center font-bold inline-block border rounded"> pcs</span>
+              <span class="font-bold text-amber-950 text-xs">📖 Resep ${item.name}</span>
+              <span class="text-[9px] bg-orange-100 text-orange-900 font-bold px-2 py-0.5 rounded-md">HPP: IDR ${currentHpp.toLocaleString()}</span>
             </div>
-            <span class="text-[10px] bg-white text-pempek font-bold px-2 py-0.5 rounded border border-orange-200">HPP: IDR ${currentHpp.toLocaleString()}</span>
+            <span id="accordion_arrow_${item.id}" class="text-amber-900 font-bold transition-transform duration-200">▼</span>
           </div>
-          <div class="space-y-1 pl-1 max-h-36 overflow-y-auto hide-scrollbar">
-            ${recipeRowsHtml}
+
+          <!-- Isi Dropdown (Hidden by Default) -->
+          <div id="accordion_content_${item.id}" class="hidden p-3 space-y-2.5 border-t border-orange-100 bg-white/60">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-semibold text-gray-700">Hasil Jadi Per Batch:</span>
+              <div class="flex items-center gap-1">
+                <input type="number" id="menu_batch_${item.id}" value="${item.batchSize || 60}" class="w-14 text-center font-bold bg-white border border-orange-200 rounded py-0.5">
+                <span class="text-[10px] text-gray-500">pcs</span>
+              </div>
+            </div>
+            <div class="space-y-1.5 pl-0.5">
+              ${recipeRowsHtml}
+            </div>
+            <button onclick="saveSingleRecipe('${item.id}')" class="w-full py-1.5 bg-amber-900 text-white rounded-lg text-xs font-bold shadow hover:bg-amber-950 transition">
+              Simpan Resep ${item.name} 💾
+            </button>
           </div>
         `;
-        recipeContainer.appendChild(div);
+        accordionContainer.appendChild(itemCard);
       });
     }
 
@@ -1231,54 +1327,6 @@
     function deleteMasterIngredient(key) {
       delete masterIngredients[key];
       renderMasterAndRecipes();
-    }
-
-    function saveAndCalculateRecipes() {
-      for (let key in masterIngredients) {
-        const nameInput = document.getElementById(`ing_name_${key}`);
-        const priceInput = document.getElementById(`ing_price_${key}`);
-        if (nameInput && priceInput) {
-          masterIngredients[key].name = nameInput.value.trim();
-          masterIngredients[key].price = parseFloat(priceInput.value) || 0;
-        }
-      }
-
-      defaultMenu.forEach(item => {
-        if (!item.isPackage) {
-          const batchInput = document.getElementById(`menu_batch_${item.id}`);
-          if (batchInput) item.batchSize = parseInt(batchInput.value) || 60;
-
-          let newRecipe = {};
-          for (let ingKey in masterIngredients) {
-            const inputEl = document.getElementById(`recipe_gram_${item.id}_${ingKey}`);
-            if (inputEl) {
-              const g = parseFloat(inputEl.value) || 0;
-              if (g > 0) newRecipe[ingKey] = g;
-            }
-          }
-          item.recipe = newRecipe;
-          item.hpp = calculateHppFromRecipe(newRecipe, item.batchSize);
-        }
-      });
-
-      // Hitung HPP Paket Favorit Otomatis dari komponen
-      const favPkg = defaultMenu.find(m => m.id === 'pkt_favorit');
-      if (favPkg && favPkg.breakdown) {
-        let pkgHpp = 0;
-        for (let pKey in favPkg.breakdown) {
-          const pQty = favPkg.breakdown[pKey];
-          const subItem = defaultMenu.find(m => m.id === pKey);
-          if (subItem) pkgHpp += (subItem.hpp || 0) * pQty;
-        }
-        favPkg.hpp = pkgHpp;
-      }
-
-      localStorage.setItem('pempek_cia_ingredients', JSON.stringify(masterIngredients));
-      localStorage.setItem('pempek_cia_menu', JSON.stringify(defaultMenu));
-
-      renderMasterAndRecipes();
-      renderRecapAndReports();
-      alert('Resep rahasia & HPP berhasil dikalkulasi ulang! 🚀');
     }
 
     function renderRecapAndReports() {
