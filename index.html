@@ -456,6 +456,7 @@
       return res.join(' • ');
     }
 
+    // Render Menu Items dengan Tombol (+ / -) DAN Input Manual
     function renderMenu() {
       const container = document.getElementById('menuContainer');
       container.innerHTML = '';
@@ -473,9 +474,9 @@
             ${item.desc ? `<div class="text-[9px] text-amber-800/70">${item.desc}</div>` : ''}
             <div class="text-xs font-semibold text-pempek mt-0.5">IDR ${item.price.toLocaleString()}</div>
           </div>
-          <div class="flex items-center gap-2 bg-orange-50 p-1 rounded-xl border border-orange-200">
+          <div class="flex items-center gap-1.5 bg-orange-50 p-1 rounded-xl border border-orange-200">
             <button onclick="updateCart('${item.id}', -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded-lg text-amber-900 text-xs font-bold shadow-xs hover:bg-orange-100">-</button>
-            <span class="w-5 text-center text-xs font-bold text-amber-950">${qty}</span>
+            <input type="number" min="0" value="${qty}" oninput="setCartInput('${item.id}', this.value)" onfocus="this.select()" class="w-10 text-center text-xs font-bold text-amber-950 bg-white rounded-lg border border-orange-200 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500">
             <button onclick="updateCart('${item.id}', 1)" class="w-6 h-6 flex items-center justify-center bg-pempek text-white rounded-lg text-xs font-bold shadow-xs hover:bg-orange-500">+</button>
           </div>
         `;
@@ -485,9 +486,19 @@
     }
 
     function updateCart(id, delta) {
-      cart[id] = (cart[id] || 0) + delta;
-      if (cart[id] <= 0) delete cart[id];
+      cart[id] = Math.max(0, (cart[id] || 0) + delta);
+      if (cart[id] === 0) delete cart[id];
       renderMenu();
+    }
+
+    function setCartInput(id, val) {
+      const parsed = parseInt(val);
+      if (isNaN(parsed) || parsed <= 0) {
+        delete cart[id];
+      } else {
+        cart[id] = parsed;
+      }
+      calculateTotal();
     }
 
     function resetCart() {
@@ -503,7 +514,7 @@
       let total = 0;
       Object.keys(cart).forEach(id => {
         const item = defaultMenu.find(m => m.id === id);
-        if (item) total += item.price * cart[id];
+        if (item) total += item.price * (cart[id] || 0);
       });
       document.getElementById('totalBelanjaTxt').innerText = `IDR ${total.toLocaleString()}`;
       return total;
@@ -790,7 +801,7 @@
         // 1. Gambar Template Stiker
         ctx.drawImage(bgImg, x, y, STICKER_SIZE, STICKER_SIZE);
 
-        // 2. Garis batas tipis pembatas potong abu-abu sangat muda (opsional)
+        // 2. Garis batas tipis pembatas potong abu-abu sangat muda
         ctx.strokeStyle = "#e2e8f0";
         ctx.lineWidth = 2;
         ctx.strokeRect(x, y, STICKER_SIZE, STICKER_SIZE);
