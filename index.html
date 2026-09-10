@@ -81,7 +81,6 @@
 
       <!-- ================= TAB 1: INPUT ORDER PO (WIZARD 2 STEP) ================= -->
       <section id="tab-order" class="space-y-3">
-        <!-- Edit Mode Banner -->
         <div id="editBanner" class="hidden bg-amber-100 border border-amber-300 text-amber-900 p-2.5 rounded-xl flex justify-between items-center text-xs">
           <span class="font-bold">✏️ Mode Edit Pesanan</span>
           <button onclick="cancelEditOrder()" class="text-[10px] bg-white px-2 py-1 rounded-md border border-amber-300 font-semibold text-red-600">Batal Edit</button>
@@ -268,7 +267,7 @@
         <button onclick="applyStockChanges()" class="w-full py-2.5 bg-amber-900 text-white rounded-xl text-xs font-semibold shadow hover:bg-amber-950 transition">Perbarui Stok Sekarang</button>
       </section>
 
-      <!-- ================= TAB 5: LABA & PENGATURAN HPP ================= -->
+      <!-- ================= TAB 5: LABA & MASTER RESEP HPP GRAMASI ================= -->
       <section id="tab-report" class="hidden space-y-3">
         <div class="grid grid-cols-2 gap-2">
           <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl">
@@ -284,19 +283,30 @@
         <div class="bg-amber-100/70 border border-amber-300 p-3.5 rounded-2xl">
           <span class="text-xs font-bold text-amber-950 block">💰 Laba Bersih PO Ini</span>
           <span class="text-xl font-bold text-amber-950 block mt-0.5" id="netProfitTxt">IDR 0</span>
-          <span class="text-[10px] text-amber-800/80 mt-1 block">*Omset dikurangi modal standar HPP per butir</span>
+          <span class="text-[10px] text-amber-800/80 mt-1 block">*Omset dikurangi modal otomatis dari gramasi resep</span>
         </div>
 
-        <!-- Panel Pengaturan HPP Standar (Bisa diubah jika harga bahan naik) -->
+        <!-- 1. Master Harga Bahan Baku (Global) -->
         <div class="bg-white p-3.5 rounded-2xl border border-orange-100 shadow-xs space-y-2.5">
           <div class="flex justify-between items-center border-b border-orange-100 pb-1.5">
-            <h3 class="text-xs font-bold text-amber-950">⚙️ Pengaturan Standar Modal (HPP)</h3>
-            <span class="text-[9px] text-orange-600 bg-orange-50 font-bold px-2 py-0.5 rounded-md">Bisa Diedit Sesuai Pasar</span>
+            <h3 class="text-xs font-bold text-amber-950">⚙️ Master Harga Bahan Baku (Per Gram)</h3>
+            <button onclick="addMasterIngredient()" class="text-[9px] bg-pempek text-white font-bold px-2 py-0.5 rounded-md">+ Bahan</button>
           </div>
-          <div id="hppSettingsContainer" class="space-y-2 text-xs">
+          <div id="masterIngredientsContainer" class="space-y-1.5 text-xs max-h-40 overflow-y-auto hide-scrollbar">
             <!-- Rendered by JS -->
           </div>
-          <button onclick="saveHppSettings()" class="w-full py-2 bg-amber-900 text-white rounded-xl text-xs font-semibold shadow hover:bg-amber-950 transition">Simpan Perubahan HPP</button>
+        </div>
+
+        <!-- 2. Master Resep Gramasi per Menu -->
+        <div class="bg-white p-3.5 rounded-2xl border border-orange-100 shadow-xs space-y-2.5">
+          <div class="flex justify-between items-center border-b border-orange-100 pb-1.5">
+            <h3 class="text-xs font-bold text-amber-950">📖 Resep Komposisi per Satuan Menu</h3>
+            <span class="text-[9px] text-orange-600 bg-orange-50 font-bold px-2 py-0.5 rounded-md">Gramasi Satuan</span>
+          </div>
+          <div id="recipeSettingsContainer" class="space-y-3 text-xs max-h-64 overflow-y-auto hide-scrollbar">
+            <!-- Rendered by JS -->
+          </div>
+          <button onclick="saveAndCalculateRecipes()" class="w-full py-2.5 bg-amber-900 text-white rounded-xl text-xs font-semibold shadow hover:bg-amber-950 transition">Simpan Resep & Hitung HPP Otomatis ✨</button>
         </div>
       </section>
 
@@ -359,13 +369,38 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // Menu & HPP Standar (Bisa Diatur di Tab Laba)
+    // 1. Master Bahan Baku Global (Harga per Gram)
+    let masterIngredients = JSON.parse(localStorage.getItem('pempek_cia_ingredients')) || {
+      'ikan': { name: 'Ikan Tenggiri', pricePerGram: 60 },      // Rp 60.000 / kg
+      'sagu': { name: 'Tepung Sagu', pricePerGram: 15 },       // Rp 15.000 / kg
+      'bumbu': { name: 'Bumbu & Garam', pricePerGram: 20 },    // Rp 20.000 / kg
+      'minyak': { name: 'Minyak Goreng', pricePerGram: 25 },   // Rp 25.000 / kg
+      'keju': { name: 'Keju Melt', pricePerGram: 90 },         // Rp 90.000 / kg
+      'kulit_mix': { name: 'Bahan Kulit Spesial', pricePerGram: 45 }
+    };
+
+    // 2. Menu & Resep Komposisi Gramasi Satuan
     let defaultMenu = JSON.parse(localStorage.getItem('pempek_cia_menu')) || [
-      { id: 'cheese', name: 'Cheese Melt', price: 7000, hpp: 4000, isPackage: false },
-      { id: 'kulit', name: 'Kulit', price: 4000, hpp: 2200, isPackage: false },
-      { id: 'lenjer', name: 'Lenjer', price: 5000, hpp: 2800, isPackage: false },
-      { id: 'adaan', name: 'Adaan', price: 5000, hpp: 2800, isPackage: false },
-      { id: 'selam', name: 'Kapal Selam Mini', price: 6000, hpp: 3500, isPackage: false },
+      { 
+        id: 'cheese', name: 'Cheese Melt', price: 7000, hpp: 4000, isPackage: false,
+        recipe: { ikan: 25, sagu: 15, keju: 10, bumbu: 5 } 
+      },
+      { 
+        id: 'kulit', name: 'Kulit', price: 4000, hpp: 2200, isPackage: false,
+        recipe: { kulit_mix: 30, bumbu: 5 } 
+      },
+      { 
+        id: 'lenjer', name: 'Lenjer', price: 5000, hpp: 2800, isPackage: false,
+        recipe: { ikan: 35, sagu: 20, bumbu: 5 } 
+      },
+      { 
+        id: 'adaan', name: 'Adaan', price: 5000, hpp: 2800, isPackage: false,
+        recipe: { ikan: 30, sagu: 15, bumbu: 10 } 
+      },
+      { 
+        id: 'selam', name: 'Kapal Selam Mini', price: 6000, hpp: 3500, isPackage: false,
+        recipe: { ikan: 40, sagu: 25, bumbu: 5 } 
+      },
       { 
         id: 'pkt_favorit', 
         name: 'Paket Favorit ⭐️', 
@@ -1100,36 +1135,137 @@
       resetCart();
     }
 
-    // Render Pengaturan Standar HPP di Tab Laba
-    function renderHppSettings() {
-      const container = document.getElementById('hppSettingsContainer');
-      container.innerHTML = '';
+    // Kalkulasi HPP Satuan Berdasarkan Resep Gramasi & Master Bahan
+    function calculateHppFromRecipe(recipe) {
+      if (!recipe) return 0;
+      let totalHpp = 0;
+      for (let ingKey in recipe) {
+        const grams = recipe[ingKey] || 0;
+        const ingObj = masterIngredients[ingKey];
+        if (ingObj) {
+          totalHpp += grams * (ingObj.pricePerGram || 0);
+        }
+      }
+      return Math.round(totalHpp);
+    }
+
+    // Render Master Bahan Baku & Resep Gramasi di Tab Laba
+    function renderMasterAndRecipes() {
+      // 1. Render Master Bahan Baku
+      const ingContainer = document.getElementById('masterIngredientsContainer');
+      ingContainer.innerHTML = '';
+      for (let key in masterIngredients) {
+        const ing = masterIngredients[key];
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between bg-orange-50/50 p-2 rounded-xl border border-orange-100 gap-2';
+        div.innerHTML = `
+          <input type="text" id="ing_name_${key}" value="${ing.name}" class="w-28 text-xs font-bold bg-white border border-orange-200 rounded px-1.5 py-1">
+          <div class="flex items-center gap-1">
+            <span class="text-[10px] text-gray-500">Rp</span>
+            <input type="number" id="ing_price_${key}" value="${ing.pricePerGram}" class="w-16 text-center text-xs font-bold bg-white border border-orange-200 rounded px-1 py-1">
+            <span class="text-[9px] text-gray-400">/gr</span>
+          </div>
+          <button onclick="deleteMasterIngredient('${key}')" class="text-red-500 font-bold px-1 text-xs">✕</button>
+        `;
+        ingContainer.appendChild(div);
+      }
+
+      // 2. Render Resep Komposisi per Menu Satuan
+      const recipeContainer = document.getElementById('recipeSettingsContainer');
+      recipeContainer.innerHTML = '';
 
       defaultMenu.forEach(item => {
-        const row = document.createElement('div');
-        row.className = 'flex justify-between items-center bg-orange-50/50 p-2 rounded-xl border border-orange-100';
-        row.innerHTML = `
-          <span class="font-semibold text-amber-950">${item.name}</span>
-          <div class="flex items-center gap-1.5">
-            <span class="text-[10px] text-gray-500">HPP: IDR</span>
-            <input type="number" id="hpp_input_${item.id}" value="${item.hpp || 0}" class="w-20 text-center font-bold bg-white border border-orange-200 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-amber-500">
+        if (item.isPackage) return; // Paket dihitung dari breakdown
+
+        const currentHpp = calculateHppFromRecipe(item.recipe);
+        const div = document.createElement('div');
+        div.className = 'p-2.5 bg-orange-50/40 rounded-xl border border-orange-100 space-y-2';
+
+        let recipeRowsHtml = '';
+        const recipeObj = item.recipe || {};
+        for (let ingKey in masterIngredients) {
+          const ingName = masterIngredients[ingKey].name;
+          const gramVal = recipeObj[ingKey] || 0;
+          recipeRowsHtml += `
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-gray-600">${ingName}</span>
+              <div class="flex items-center gap-1">
+                <input type="number" min="0" id="recipe_gram_${item.id}_${ingKey}" value="${gramVal}" class="w-14 text-center font-bold bg-white border border-orange-200 rounded py-0.5">
+                <span class="text-[9px] text-gray-400 w-4">gr</span>
+              </div>
+            </div>
+          `;
+        }
+
+        div.innerHTML = `
+          <div class="flex justify-between items-center border-b border-orange-100 pb-1">
+            <span class="font-bold text-amber-950">${item.name}</span>
+            <span class="text-[10px] bg-white text-pempek font-bold px-2 py-0.5 rounded border border-orange-200">HPP: IDR ${currentHpp.toLocaleString()}</span>
+          </div>
+          <div class="space-y-1 pl-1">
+            ${recipeRowsHtml}
           </div>
         `;
-        container.appendChild(row);
+        recipeContainer.appendChild(div);
       });
     }
 
-    function saveHppSettings() {
+    function addMasterIngredient() {
+      const newKey = 'ing_' + Date.now();
+      masterIngredients[newKey] = { name: 'Bahan Baru', pricePerGram: 10 };
+      renderMasterAndRecipes();
+    }
+
+    function deleteMasterIngredient(key) {
+      delete masterIngredients[key];
+      renderMasterAndRecipes();
+    }
+
+    function saveAndCalculateRecipes() {
+      // 1. Simpan Master Bahan Baku
+      for (let key in masterIngredients) {
+        const nameInput = document.getElementById(`ing_name_${key}`);
+        const priceInput = document.getElementById(`ing_price_${key}`);
+        if (nameInput && priceInput) {
+          masterIngredients[key].name = nameInput.value.trim();
+          masterIngredients[key].pricePerGram = parseFloat(priceInput.value) || 0;
+        }
+      }
+
+      // 2. Simpan Resep Gramasi per Menu & Hitung HPP Otomatis
       defaultMenu.forEach(item => {
-        const val = parseInt(document.getElementById(`hpp_input_${item.id}`).value);
-        if (!isNaN(val)) {
-          item.hpp = val;
+        if (!item.isPackage) {
+          let newRecipe = {};
+          for (let ingKey in masterIngredients) {
+            const inputEl = document.getElementById(`recipe_gram_${item.id}_${ingKey}`);
+            if (inputEl) {
+              const g = parseFloat(inputEl.value) || 0;
+              if (g > 0) newRecipe[ingKey] = g;
+            }
+          }
+          item.recipe = newRecipe;
+          item.hpp = calculateHppFromRecipe(newRecipe);
         }
       });
 
+      // 3. Hitung HPP Paket Favorit Otomatis (Dari breakdown komponennya)
+      const favPkg = defaultMenu.find(m => m.id === 'pkt_favorit');
+      if (favPkg && favPkg.breakdown) {
+        let pkgHpp = 0;
+        for (let pKey in favPkg.breakdown) {
+          const pQty = favPkg.breakdown[pKey];
+          const subItem = defaultMenu.find(m => m.id === pKey);
+          if (subItem) pkgHpp += (subItem.hpp || 0) * pQty;
+        }
+        favPkg.hpp = pkgHpp;
+      }
+
+      localStorage.setItem('pempek_cia_ingredients', JSON.stringify(masterIngredients));
       localStorage.setItem('pempek_cia_menu', JSON.stringify(defaultMenu));
+
+      renderMasterAndRecipes();
       renderRecapAndReports();
-      alert('Standar HPP berhasil diperbarui! Laba bersih pesanan akan menyesuaikan. ✨');
+      alert('Resep gramasi & HPP berhasil diperbarui otomatis! 🚀');
     }
 
     function renderRecapAndReports() {
@@ -1153,7 +1289,6 @@
       let modalTotal = 0;
 
       filteredOrders.forEach(order => {
-        // Hitung ulang modal riil berdasarkan HPP terbaru di defaultMenu
         let recalculatedModal = 0;
         Object.keys(order.counts || {}).forEach(menuId => {
           const qty = order.counts[menuId];
@@ -1241,7 +1376,7 @@
       document.getElementById('modalTxt').innerText = `IDR ${modalTotal.toLocaleString()}`;
       document.getElementById('netProfitTxt').innerText = `IDR ${(grossTotal - modalTotal).toLocaleString()}`;
 
-      renderHppSettings();
+      renderMasterAndRecipes();
     }
 
     // Generator Lembar Universal (A3 & A4)
