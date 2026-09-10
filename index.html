@@ -146,7 +146,11 @@
             <span class="text-[10px] text-amber-800/70 font-medium">Tenggiri Asli • Gurih & Lezat</span>
           </div>
         </div>
-        <span class="text-[10px] bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full font-bold">✨ Sistem PO</span>
+        <!-- Status Indikator Cloud -->
+        <div id="cloudStatus" class="text-[10px] bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full font-bold flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+          <span id="cloudStatusTxt">Sinkron...</span>
+        </div>
       </div>
 
       <!-- Batch Date Selector -->
@@ -237,7 +241,7 @@
           </button>
         </div>
 
-        <!-- Daftar Orderan Masuk Lengkap dengan Tombol Edit & Hapus -->
+        <!-- Daftar Orderan Masuk -->
         <div class="bg-white p-3 rounded-2xl border border-orange-100 shadow-xs">
           <h3 class="text-xs font-bold text-amber-950 mb-2">Daftar Pemesan PO Ini</h3>
           <div id="batchOrderList" class="space-y-2 max-h-56 overflow-y-auto hide-scrollbar text-xs">
@@ -341,6 +345,9 @@
   </div>
 
   <script>
+    // URL API Google Apps Script Milikmu
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby_qcO1vk49F-Hr3p9EFSo83_uY2IjFusRMHlJc96IukxU26-IWxuCElsdJ_BXy6U-f/exec";
+
     // Menu Data
     const defaultMenu = [
       { id: 'cheese', name: 'Cheese Melt', price: 7000, hpp: 4000, isPackage: false },
@@ -394,7 +401,87 @@
       return document.getElementById('poBatchDate').value || todayStr;
     }
 
-    // Fungsi Hitung Kebutuhan Packaging per Pesanan
+    // Update Status Indikator Cloud
+    function setCloudStatus(state, msg) {
+      const el = document.getElementById('cloudStatus');
+      const txt = document.getElementById('cloudStatusTxt');
+      txt.innerText = msg;
+      if (state === 'syncing') {
+        el.className = 'text-[10px] bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full font-bold flex items-center gap-1';
+        el.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span><span>' + msg + '</span>';
+      } else if (state === 'online') {
+        el.className = 'text-[10px] bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-bold flex items-center gap-1';
+        el.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span>' + msg + '</span>';
+      } else {
+        el.className = 'text-[10px] bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full font-bold flex items-center gap-1';
+        el.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span><span>' + msg + '</span>';
+      }
+    }
+
+    // Ambil Data dari Google Sheets saat aplikasi pertama dibuka
+    async function loadCloudData() {
+      setCloudStatus('syncing', 'Memuat...');
+      try {
+        const res = await fetch(SCRIPT_URL);
+        const data = await res.json();
+        if (data.status === 'success') {
+          if (data.stock) {
+            stock = {
+              cheese: data.stock.cheese ?? 50,
+              kulit: data.stock.kulit ?? 50,
+              lenjer: data.stock.lenjer ?? 50,
+              adaan: data.stock.adaan ?? 50,
+              selam: data.stock.selam ?? 50
+            };
+            packagingStock = {
+              cuko_s: data.stock.cuko_s ?? 50,
+              cuko_l: data.stock.cuko_l ?? 50,
+              pempek_s: data.stock.pempek_s ?? 50,
+              pempek_m: data.stock.pempek_m ?? 50,
+              pempek_l: data.stock.pempek_l ?? 50
+            };
+            localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
+            localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
+          }
+          if (data.orders) {
+            orders = data.orders;
+            localStorage.setItem('pempek_cia_orders', JSON.stringify(orders));
+          }
+          setCloudStatus('online', 'Tersinkron');
+          renderStock();
+          renderRecapAndReports();
+        }
+      } catch (err) {
+        console.warn('Gagal koneksi ke cloud, menggunakan data lokal:', err);
+        setCloudStatus('offline', 'Offline');
+      }
+    }
+
+    // Kirim Data Terbaru ke Google Sheets
+    async function syncToCloud(actionType) {
+      setCloudStatus('syncing', 'Menyimpan...');
+      const payload = {
+        action: actionType,
+        orders: orders,
+        stock: { ...stock, ...packagingStock }
+      };
+
+      try {
+        // Mengirim data POST tanpa terhalang CORS
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        setCloudStatus('online', 'Tersimpan');
+      } catch (err) {
+        console.error('Gagal simpan ke cloud:', err);
+        setCloudStatus('offline', 'Gagal Simpan');
+      }
+    }
+
+    // Hitung Kebutuhan Packaging per Pesanan
     function calculateOrderPackaging(counts) {
       const c = counts || {};
       const singlePieces = (c.selam || 0) + (c.lenjer || 0) + (c.adaan || 0) + (c.kulit || 0) + (c.cheese || 0);
@@ -408,13 +495,11 @@
         pempek_l: 0
       };
 
-      // 1 Paket Favorit otomatis pakai 1 Kantong Pempek S & 1 Cuko S
       if (favPackages > 0) {
         needed.pempek_s += favPackages;
         needed.cuko_s += favPackages;
       }
 
-      // Hitung aturan kantong untuk pempek satuan
       if (singlePieces > 0) {
         let remaining = singlePieces;
         while (remaining > 0) {
@@ -427,7 +512,6 @@
             needed.cuko_l += 1;
             remaining -= 10;
           } else {
-            // 11 - 15 butir pakai Kantong L, 1 Cuko S + 1 Cuko L
             needed.pempek_l += 1;
             needed.cuko_s += 1;
             needed.cuko_l += 1;
@@ -509,7 +593,7 @@
       return total;
     }
 
-    // Simpan Order (Baru atau Update)
+    // Submit Order (Simpan & Kirim ke Google Sheets)
     function submitOrder() {
       const cust = document.getElementById('custName').value.trim();
       const itemsInCart = Object.keys(cart);
@@ -551,7 +635,7 @@
         }
       });
 
-      // Hitung dan potong kantong packaging
+      // Potong stok kemasan
       const packagingUsed = calculateOrderPackaging(orderSummaryCounts);
       for (let key in packagingUsed) {
         packagingStock[key] = Math.max(0, (packagingStock[key] || 0) - packagingUsed[key]);
@@ -573,6 +657,9 @@
       localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
       localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
 
+      // Kirim pembaruan ke Google Sheets
+      syncToCloud('syncOrders');
+
       alert(`✅ Pesanan Kak ${cust} berhasil disimpan!`);
 
       resetCart();
@@ -580,7 +667,7 @@
       renderRecapAndReports();
     }
 
-    // Fungsi Hapus Orderan (Stok & Packaging dikembalikan)
+    // Hapus Orderan
     function deleteOrder(orderId) {
       const idx = orders.findIndex(o => o.id === orderId);
       if (idx === -1) return;
@@ -590,7 +677,7 @@
         return;
       }
 
-      // 1. Kembalikan stok butir pempek
+      // 1. Kembalikan stok butir
       for (let id in order.counts) {
         const qty = order.counts[id];
         if (qty > 0) {
@@ -611,17 +698,19 @@
         packagingStock[k] = (packagingStock[k] || 0) + pack[k];
       }
 
-      // 3. Hapus order dari database
+      // 3. Hapus order dari memori lokal & sinkron ke Cloud
       orders.splice(idx, 1);
       localStorage.setItem('pempek_cia_orders', JSON.stringify(orders));
       localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
       localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
 
+      syncToCloud('syncOrders');
+
       renderStock();
       renderRecapAndReports();
     }
 
-    // Fungsi Edit Orderan
+    // Edit Orderan
     function editOrder(orderId) {
       const idx = orders.findIndex(o => o.id === orderId);
       if (idx === -1) return;
@@ -647,13 +736,13 @@
         packagingStock[k] = (packagingStock[k] || 0) + pack[k];
       }
 
-      // Hapus sementara dari daftar pesanan
       orders.splice(idx, 1);
       localStorage.setItem('pempek_cia_orders', JSON.stringify(orders));
       localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
       localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
 
-      // Isi form kasir dengan data lama
+      syncToCloud('syncOrders');
+
       cart = { ...order.counts };
       for (let k in cart) {
         if (cart[k] === 0) delete cart[k];
@@ -661,7 +750,6 @@
       document.getElementById('custName').value = order.cust;
       editingOrderId = order.id;
 
-      // Ubah UI kasir ke mode edit
       document.getElementById('editBanner').classList.remove('hidden');
       document.getElementById('btnSubmitOrder').innerText = 'Perbarui Pesanan 🔄';
 
@@ -840,7 +928,7 @@
       singleItems.forEach(item => {
         const qty = stock[item.id] || 0;
         const row = document.createElement('div');
-        row.className = 'flex justify-between items-center bg-white p-2 rounded-xl border border-orange-100 shadow-xs';
+        row.className = 'flex justify-between items-center bg-white p-2.5 rounded-xl border border-orange-100 shadow-xs';
         row.innerHTML = `
           <span class="text-xs font-semibold text-amber-950">${item.name}</span>
           <div class="flex items-center gap-1.5">
@@ -868,6 +956,10 @@
 
       localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
       localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
+
+      // Kirim pembaruan stok ke Cloud Google Sheets
+      syncToCloud('updateStock');
+
       alert('Stok kemasan dan butir pempek berhasil disimpan! ✨');
     }
 
@@ -885,10 +977,11 @@
       }
     }
 
-    // Inisialisasi awal
+    // Inisialisasi awal & Tarik data Cloud
     renderMenu();
     renderStock();
     renderRecapAndReports();
+    loadCloudData();
   </script>
 </body>
 </html>
