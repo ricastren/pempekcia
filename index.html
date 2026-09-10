@@ -88,16 +88,19 @@
       letter-spacing: -0.2px;
     }
 
-    /* CSS Cetak Kertas A3 (5 Kolom Penuh) */
+    /* CSS Cetak Kertas A3 Khusus - Perbaikan Tanpa Potong Frame */
     @media print {
       @page {
         size: A3 portrait;
         margin: 5mm;
       }
-      body {
+      html, body {
         background: #ffffff !important;
         margin: 0 !important;
         padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
       }
       /* Sembunyikan frame HP */
       .mobile-frame {
@@ -347,29 +350,29 @@
         <span class="text-[10px] font-bold">Laba</span>
       </button>
     </nav>
+  </div>
 
-    <!-- Modal Batch Sticker Preview -->
-    <div id="batchStickerModal" class="hidden absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 z-50">
-      <div class="bg-white rounded-3xl p-4 w-full h-[92%] flex flex-col shadow-2xl space-y-2.5">
-        <div class="flex justify-between items-center border-b pb-2">
-          <div>
-            <h3 class="text-xs font-bold text-amber-950">Pratinjau Stiker Lembar A3 🏷️</h3>
-            <span class="text-[10px] text-gray-400">Layout 5 kolom ke kanan (pas kertas A3)</span>
-          </div>
-          <button onclick="closeBatchSticker()" class="text-gray-400 hover:text-gray-600 font-bold text-base">✕</button>
+  <!-- Modal Batch Sticker (DITARUH DI LUAR FRAME HP SUPAYA CETAK TIDAK TERPOTONG) -->
+  <div id="batchStickerModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 z-50">
+    <div class="bg-white rounded-3xl p-4 w-full max-w-sm h-[92%] flex flex-col shadow-2xl space-y-2.5">
+      <div class="flex justify-between items-center border-b pb-2">
+        <div>
+          <h3 class="text-xs font-bold text-amber-950">Pratinjau Stiker Lembar A3 🏷️</h3>
+          <span class="text-[10px] text-gray-400">Layout 5 kolom ke kanan (pas kertas A3)</span>
         </div>
+        <button onclick="closeBatchSticker()" class="text-gray-400 hover:text-gray-600 font-bold text-base">✕</button>
+      </div>
 
-        <div class="flex-1 overflow-y-auto hide-scrollbar p-1" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;" id="batchPrintArea">
-          <!-- Rendered dynamically -->
-        </div>
+      <!-- Area Pratinjau Layar -->
+      <div class="flex-1 overflow-y-auto hide-scrollbar p-1" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;" id="batchPrintArea">
+        <!-- Rendered dynamically -->
+      </div>
 
-        <div class="flex gap-2 pt-1 border-t">
-          <button onclick="window.print()" class="flex-1 py-2 bg-pempek text-white text-xs font-bold rounded-xl shadow hover:bg-orange-500">🖨️ Cetak Lembar A3 (5 Stiker ke Kanan)</button>
-          <button onclick="closeBatchSticker()" class="py-2 px-4 bg-gray-100 text-gray-600 text-xs font-semibold rounded-xl">Tutup</button>
-        </div>
+      <div class="flex gap-2 pt-1 border-t">
+        <button onclick="window.print()" class="flex-1 py-2 bg-pempek text-white text-xs font-bold rounded-xl shadow hover:bg-orange-500">🖨️ Cetak Lembar A3 (5 Stiker ke Kanan)</button>
+        <button onclick="closeBatchSticker()" class="py-2 px-4 bg-gray-100 text-gray-600 text-xs font-semibold rounded-xl">Tutup</button>
       </div>
     </div>
-
   </div>
 
   <script>
@@ -650,7 +653,7 @@
         modal += item.hpp * qty;
         orderSummaryCounts[id] = qty;
 
-        // Potong stok (bisa minus jika stok tidak mencukupi)
+        // Potong stok butir (bisa minus menandakan kekurangan stok)
         if (item.isPackage) {
           for (let p in item.breakdown) {
             stock[p] = (stock[p] || 0) - (item.breakdown[p] * qty);
@@ -904,9 +907,9 @@
       document.getElementById('batchStickerModal').classList.add('hidden');
     }
 
-    // Render Modul Stok Baru: Angka Dinamis Kunci + Kolom Input Mutasi (+ / -)
+    // Render Modul Stok: Kolom Sisa (Terkunci) + Kolom Input (+ / -)
     function renderStock() {
-      // 1. Render Stok Packaging
+      // 1. Stok Packaging
       const packContainer = document.getElementById('packagingStockList');
       packContainer.innerHTML = '';
       const packLabels = {
@@ -927,11 +930,9 @@
         row.innerHTML = `
           <span class="text-xs font-semibold text-amber-950">${packLabels[key]}</span>
           <div class="flex items-center gap-2">
-            <!-- Kolom Stok Dinamis (Terkunci / Tidak Bisa Diedit) -->
             <span class="w-12 text-center text-xs font-bold py-1 px-1.5 rounded-lg border ${colorClass}">
               ${currentVal}
             </span>
-            <!-- Kolom Input Mutasi (+ / -) -->
             <input type="number" id="adj_pack_${key}" placeholder="0" class="w-14 text-center text-xs font-bold bg-white border border-amber-300 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-amber-500">
             <span class="text-[10px] text-gray-400 w-5">lbr</span>
           </div>
@@ -939,7 +940,7 @@
         packContainer.appendChild(row);
       }
 
-      // 2. Render Stok Butir Pempek
+      // 2. Stok Butir Pempek
       const container = document.getElementById('stockList');
       container.innerHTML = '';
       const singleItems = defaultMenu.filter(m => !m.isPackage);
@@ -954,11 +955,9 @@
         row.innerHTML = `
           <span class="text-xs font-semibold text-amber-950">${item.name}</span>
           <div class="flex items-center gap-2">
-            <!-- Kolom Stok Dinamis (Terkunci / Tidak Bisa Diedit) -->
             <span class="w-12 text-center text-xs font-bold py-1 px-1.5 rounded-lg border ${colorClass}">
               ${currentVal}
             </span>
-            <!-- Kolom Input Mutasi (+ / -) -->
             <input type="number" id="adj_stock_${item.id}" placeholder="0" class="w-14 text-center text-xs font-bold bg-white border border-amber-300 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-amber-500">
             <span class="text-[10px] text-gray-400 w-5">pcs</span>
           </div>
@@ -967,11 +966,10 @@
       });
     }
 
-    // Terapkan Penambahan/Pengurangan Stok dari Kolom Mutasi
+    // Terapkan Mutasi Penambahan/Pengurangan Stok
     function applyStockChanges() {
       let anyChange = false;
 
-      // 1. Terapkan Mutasi Packaging
       ['cuko_s', 'cuko_l', 'pempek_s', 'pempek_m', 'pempek_l'].forEach(key => {
         const el = document.getElementById(`adj_pack_${key}`);
         const delta = parseInt(el.value);
@@ -982,7 +980,6 @@
         }
       });
 
-      // 2. Terapkan Mutasi Butir Pempek
       const singleItems = defaultMenu.filter(m => !m.isPackage);
       singleItems.forEach(item => {
         const el = document.getElementById(`adj_stock_${item.id}`);
