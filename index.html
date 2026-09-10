@@ -8,6 +8,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Fonts: Fredoka -->
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Firebase SDK (Compat Version) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
   <script>
     tailwind.config = {
       theme: {
@@ -64,7 +69,6 @@
       text-align: center;
       line-height: 1;
     }
-    /* Ukuran font angka di oval */
     .val-qty {
       left: 41.0%;
       font-size: 6pt;
@@ -74,7 +78,6 @@
       align-items: center;
       justify-content: center;
     }
-    /* Teks nama: dinaikkan ke 83.0% agar pas di dalam kotak */
     .val-nama {
       left: 25.4%;
       top: 83.0%;
@@ -146,10 +149,10 @@
             <span class="text-[10px] text-amber-800/70 font-medium">Tenggiri Asli • Gurih & Lezat</span>
           </div>
         </div>
-        <!-- Status Indikator Cloud -->
+        <!-- Status Cloud Firebase -->
         <div id="cloudStatus" class="text-[10px] bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full font-bold flex items-center gap-1">
           <span class="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
-          <span id="cloudStatusTxt">Sinkron...</span>
+          <span id="cloudStatusTxt">Menghubungkan...</span>
         </div>
       </div>
 
@@ -206,7 +209,6 @@
 
       <!-- ================= TAB 2: REKAP DAPUR & PRODUKSI PO ================= -->
       <section id="tab-recap" class="hidden space-y-3">
-        <!-- Summary PO Card -->
         <div class="bg-gradient-to-br from-amber-500 to-pempek text-white p-3.5 rounded-2xl shadow-sm">
           <div class="flex justify-between items-center">
             <div>
@@ -220,7 +222,6 @@
           </div>
         </div>
 
-        <!-- Recipe Production Breakdown -->
         <div class="bg-white p-3 rounded-2xl border border-orange-100 shadow-xs space-y-2">
           <div class="flex justify-between items-center border-b border-orange-100 pb-1.5">
             <h3 class="text-xs font-bold text-amber-950 flex items-center gap-1">
@@ -234,14 +235,12 @@
           </div>
         </div>
 
-        <!-- Tombol Buka Stiker Batch Template Asli -->
         <div class="pt-1">
           <button onclick="openBatchStickerModal()" class="w-full py-2.5 bg-amber-900 text-white rounded-2xl text-xs font-bold shadow-md hover:bg-amber-950 transition flex items-center justify-center gap-2">
             <span>🏷️</span> Cetak Lembar Stiker A3 (Maks 5 ke Kanan)
           </button>
         </div>
 
-        <!-- Daftar Orderan Masuk -->
         <div class="bg-white p-3 rounded-2xl border border-orange-100 shadow-xs">
           <h3 class="text-xs font-bold text-amber-950 mb-2">Daftar Pemesan PO Ini</h3>
           <div id="batchOrderList" class="space-y-2 max-h-56 overflow-y-auto hide-scrollbar text-xs">
@@ -252,7 +251,6 @@
 
       <!-- ================= TAB 3: STOK GUDANG & PACKAGING ================= -->
       <section id="tab-stock" class="hidden space-y-3">
-        <!-- Packaging Stock -->
         <div>
           <div class="flex justify-between items-center mb-1.5">
             <h2 class="text-xs font-bold text-amber-950">🛍️ Kebutuhan & Stok Kantong</h2>
@@ -263,7 +261,6 @@
           </div>
         </div>
 
-        <!-- Pempek Pieces Stock -->
         <div class="pt-2">
           <div class="flex justify-between items-center mb-1.5">
             <h2 class="text-xs font-bold text-amber-950">📦 Stok Butir Pempek (Freezer)</h2>
@@ -330,7 +327,6 @@
           <button onclick="closeBatchSticker()" class="text-gray-400 hover:text-gray-600 font-bold text-base">✕</button>
         </div>
 
-        <!-- Area Pratinjau Stiker -->
         <div class="flex-1 overflow-y-auto hide-scrollbar p-1" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;" id="batchPrintArea">
           <!-- Rendered dynamically -->
         </div>
@@ -345,10 +341,19 @@
   </div>
 
   <script>
-    // URL WEB APP GOOGLE APPS SCRIPT
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby_qcO1vk49F-Hr3p9EFSo83_uY2IjFusRMHlJc96IukxU26-IWxuCElsdJ_BXy6U-f/exec";
+    // Konfigurasi Firebase dari akunmu
+    const firebaseConfig = {
+      apiKey: "AIzaSyDhpKdk9vrShLVdps14x8KpSpJ_ZiBgrAY",
+      authDomain: "pempek-cia.firebaseapp.com",
+      projectId: "pempek-cia",
+      storageBucket: "pempek-cia.firebasestorage.app",
+      messagingSenderId: "1000885727448",
+      appId: "1:1000885727448:web:f062c62f269d5e39f567ad"
+    };
 
-    // Menu Data
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
     const defaultMenu = [
       { id: 'cheese', name: 'Cheese Melt', price: 7000, hpp: 4000, isPackage: false },
       { id: 'kulit', name: 'Kulit', price: 4000, hpp: 2200, isPackage: false },
@@ -369,7 +374,6 @@
     let cart = {};
     let editingOrderId = null;
 
-    // Stok Butir Pempek
     let stock = JSON.parse(localStorage.getItem('pempek_cia_stock')) || {
       cheese: 50,
       kulit: 50,
@@ -378,7 +382,6 @@
       selam: 50
     };
 
-    // Stok Packaging / Kantong
     let packagingStock = JSON.parse(localStorage.getItem('pempek_cia_packaging')) || {
       cuko_s: 50,
       cuko_l: 50,
@@ -389,7 +392,6 @@
 
     let orders = JSON.parse(localStorage.getItem('pempek_cia_orders')) || [];
 
-    // Set Default PO Date Today
     const todayStr = new Date().toISOString().split('T')[0];
     document.getElementById('poBatchDate').value = todayStr;
 
@@ -401,7 +403,6 @@
       return document.getElementById('poBatchDate').value || todayStr;
     }
 
-    // Status Indikator Cloud
     function setCloudStatus(state, msg) {
       const el = document.getElementById('cloudStatus');
       if (state === 'syncing') {
@@ -416,82 +417,68 @@
       }
     }
 
-    // Ambil Data Memakai JSONP (Anti-CORS Browser)
-    function loadCloudData() {
-      setCloudStatus('syncing', 'Memuat...');
+    // Realtime Listener Firestore (Otomatis & Cepat)
+    function initFirebaseRealtime() {
+      setCloudStatus('syncing', 'Menghubungkan...');
 
-      window.handleCloudResponse = function(data) {
-        if (data && data.status === 'success') {
-          if (data.stock) {
-            stock = {
-              cheese: data.stock.cheese ?? 50,
-              kulit: data.stock.kulit ?? 50,
-              lenjer: data.stock.lenjer ?? 50,
-              adaan: data.stock.adaan ?? 50,
-              selam: data.stock.selam ?? 50
-            };
-            packagingStock = {
-              cuko_s: data.stock.cuko_s ?? 50,
-              cuko_l: data.stock.cuko_l ?? 50,
-              pempek_s: data.stock.pempek_s ?? 50,
-              pempek_m: data.stock.pempek_m ?? 50,
-              pempek_l: data.stock.pempek_l ?? 50
-            };
-            localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
-            localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
-          }
-          if (data.orders) {
-            orders = data.orders;
-            localStorage.setItem('pempek_cia_orders', JSON.stringify(orders));
-          }
-          setCloudStatus('online', 'Tersinkron');
+      // Listener Dokumen Stok
+      db.collection('data').doc('stock').onSnapshot((doc) => {
+        if (doc.exists) {
+          const d = doc.data();
+          if (d.pieces) stock = d.pieces;
+          if (d.packaging) packagingStock = d.packaging;
+          localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
+          localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
           renderStock();
           renderRecapAndReports();
+        } else {
+          db.collection('data').doc('stock').set({
+            pieces: stock,
+            packaging: packagingStock
+          });
         }
-        const scriptEl = document.getElementById('jsonpLoader');
-        if (scriptEl) scriptEl.remove();
-      };
-
-      const oldScript = document.getElementById('jsonpLoader');
-      if (oldScript) oldScript.remove();
-
-      const script = document.createElement('script');
-      script.id = 'jsonpLoader';
-      script.src = SCRIPT_URL + '?callback=handleCloudResponse&t=' + Date.now();
-      script.onerror = function() {
-        console.warn('Gagal koneksi ke cloud, menggunakan data lokal.');
+        setCloudStatus('online', 'Realtime');
+      }, (err) => {
+        console.warn('Gagal koneksi Firestore:', err);
         setCloudStatus('offline', 'Offline');
-      };
-      document.body.appendChild(script);
+      });
+
+      // Listener Dokumen Orders
+      db.collection('data').doc('orders').onSnapshot((doc) => {
+        if (doc.exists) {
+          const d = doc.data();
+          if (d.list) {
+            orders = d.list;
+            localStorage.setItem('pempek_cia_orders', JSON.stringify(orders));
+            renderRecapAndReports();
+          }
+        } else {
+          db.collection('data').doc('orders').set({ list: orders });
+        }
+        setCloudStatus('online', 'Realtime');
+      });
     }
 
-    // Kirim Data ke Google Sheets
-    async function syncToCloud(actionType) {
+    // Simpan ke Firestore
+    async function syncToCloud() {
       setCloudStatus('syncing', 'Menyimpan...');
-      const payload = {
-        action: actionType,
-        orders: orders,
-        stock: { ...stock, ...packagingStock }
-      };
-
       try {
-        const formBody = new URLSearchParams();
-        formBody.append('data', JSON.stringify(payload));
-
-        await fetch(SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: formBody.toString()
-        });
-        setCloudStatus('online', 'Tersimpan');
+        await Promise.all([
+          db.collection('data').doc('stock').set({
+            pieces: stock,
+            packaging: packagingStock
+          }),
+          db.collection('data').doc('orders').set({
+            list: orders
+          })
+        ]);
+        setCloudStatus('online', 'Realtime');
       } catch (err) {
-        console.error('Gagal simpan ke cloud:', err);
+        console.error('Gagal simpan Firebase:', err);
         setCloudStatus('offline', 'Gagal Simpan');
       }
     }
 
-    // Hitung Kebutuhan Packaging
     function calculateOrderPackaging(counts) {
       const c = counts || {};
       const singlePieces = (c.selam || 0) + (c.lenjer || 0) + (c.adaan || 0) + (c.kulit || 0) + (c.cheese || 0);
@@ -549,7 +536,6 @@
       return res.join(' • ');
     }
 
-    // Render Menu Items
     function renderMenu() {
       const container = document.getElementById('menuContainer');
       container.innerHTML = '';
@@ -603,7 +589,6 @@
       return total;
     }
 
-    // Submit Order
     function submitOrder() {
       const cust = document.getElementById('custName').value.trim();
       const itemsInCart = Object.keys(cart);
@@ -665,7 +650,7 @@
       localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
       localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
 
-      syncToCloud('syncOrders');
+      syncToCloud();
 
       alert(`✅ Pesanan Kak ${cust} berhasil disimpan!`);
 
@@ -674,7 +659,6 @@
       renderRecapAndReports();
     }
 
-    // Hapus Orderan
     function deleteOrder(orderId) {
       const idx = orders.findIndex(o => o.id === orderId);
       if (idx === -1) return;
@@ -708,13 +692,12 @@
       localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
       localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
 
-      syncToCloud('syncOrders');
+      syncToCloud();
 
       renderStock();
       renderRecapAndReports();
     }
 
-    // Edit Orderan
     function editOrder(orderId) {
       const idx = orders.findIndex(o => o.id === orderId);
       if (idx === -1) return;
@@ -744,7 +727,7 @@
       localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
       localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
 
-      syncToCloud('syncOrders');
+      syncToCloud();
 
       cart = { ...order.counts };
       for (let k in cart) {
@@ -766,7 +749,6 @@
       resetCart();
     }
 
-    // Render Dapur Recap & Reports
     function renderRecapAndReports() {
       const currentPo = getCurrentPoDate();
       document.getElementById('recapBatchDateTxt').innerText = currentPo;
@@ -814,7 +796,6 @@
         </div>
       `).join('');
 
-      // Render Order List di PO
       const batchListContainer = document.getElementById('batchOrderList');
       if (filteredOrders.length === 0) {
         batchListContainer.innerHTML = `<div class="text-center text-gray-400 py-3 text-[11px]">Belum ada pesanan di tanggal PO ini</div>`;
@@ -852,13 +833,11 @@
         }).join('');
       }
 
-      // Render Profit
       document.getElementById('grossTxt').innerText = `IDR ${grossTotal.toLocaleString()}`;
       document.getElementById('modalTxt').innerText = `IDR ${modalTotal.toLocaleString()}`;
       document.getElementById('netProfitTxt').innerText = `IDR ${(grossTotal - modalTotal).toLocaleString()}`;
     }
 
-    // Render Batch Sticker Modal
     function openBatchStickerModal() {
       const currentPo = getCurrentPoDate();
       const filteredOrders = orders.filter(o => o.poDate === currentPo);
@@ -875,7 +854,6 @@
           <div class="sticker-wrapper">
             <img src="sticker.png" class="sticker-bg" alt="Stiker Pempek Cia" />
             
-            <!-- Value Qty di Oval Box -->
             <div class="sticker-val val-qty" style="top: 43.95%;">${c.selam > 0 ? c.selam : ''}</div>
             <div class="sticker-val val-qty" style="top: 48.88%;">${c.lenjer > 0 ? c.lenjer : ''}</div>
             <div class="sticker-val val-qty" style="top: 53.91%;">${c.adaan > 0 ? c.adaan : ''}</div>
@@ -883,7 +861,6 @@
             <div class="sticker-val val-qty" style="top: 63.87%;">${c.cheese > 0 ? c.cheese : ''}</div>
             <div class="sticker-val val-qty" style="top: 69.04%;">${c.pkt_favorit > 0 ? c.pkt_favorit : ''}</div>
 
-            <!-- Nama Pembeli di Kolom NAMA -->
             <div class="sticker-val val-nama">${order.cust}</div>
           </div>
         `;
@@ -896,9 +873,7 @@
       document.getElementById('batchStickerModal').classList.add('hidden');
     }
 
-    // Stock Management (Packaging & Butir Pempek)
     function renderStock() {
-      // 1. Render Packaging Stock
       const packContainer = document.getElementById('packagingStockList');
       packContainer.innerHTML = '';
       const packLabels = {
@@ -923,7 +898,6 @@
         packContainer.appendChild(row);
       }
 
-      // 2. Render Pempek Pieces Stock
       const container = document.getElementById('stockList');
       container.innerHTML = '';
       const singleItems = defaultMenu.filter(m => !m.isPackage);
@@ -944,13 +918,11 @@
     }
 
     function saveStockChanges() {
-      // Simpan Packaging
       ['cuko_s', 'cuko_l', 'pempek_s', 'pempek_m', 'pempek_l'].forEach(key => {
         const val = parseInt(document.getElementById(`input_pack_${key}`).value) || 0;
         packagingStock[key] = val;
       });
 
-      // Simpan Pempek Butir
       const singleItems = defaultMenu.filter(m => !m.isPackage);
       singleItems.forEach(item => {
         const val = parseInt(document.getElementById(`input_stock_${item.id}`).value) || 0;
@@ -960,12 +932,11 @@
       localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
       localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
 
-      syncToCloud('updateStock');
+      syncToCloud();
 
       alert('Stok kemasan dan butir pempek berhasil disimpan! ✨');
     }
 
-    // Tab Switcher
     function switchTab(tab) {
       ['order', 'recap', 'stock', 'report'].forEach(t => {
         document.getElementById(`tab-${t}`).classList.add('hidden');
@@ -979,11 +950,11 @@
       }
     }
 
-    // Inisialisasi awal & Tarik data Cloud
+    // Inisialisasi awal
     renderMenu();
     renderStock();
     renderRecapAndReports();
-    loadCloudData();
+    initFirebaseRealtime();
   </script>
 </body>
 </html>
