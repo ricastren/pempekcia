@@ -418,13 +418,13 @@
       }
     }
 
-    // Ambil Data dari Google Sheets saat aplikasi pertama dibuka
-    async function loadCloudData() {
+    // Ambil Data dari Google Sheets memakai JSONP (Anti-CORS / Anti-Macet)
+    function loadCloudData() {
       setCloudStatus('syncing', 'Memuat...');
-      try {
-        const res = await fetch(SCRIPT_URL);
-        const data = await res.json();
-        if (data.status === 'success') {
+
+      // Buat callback global sementara
+      window.handleCloudResponse = function(data) {
+        if (data && data.status === 'success') {
           if (data.stock) {
             stock = {
               cheese: data.stock.cheese ?? 50,
@@ -451,10 +451,23 @@
           renderStock();
           renderRecapAndReports();
         }
-      } catch (err) {
-        console.warn('Gagal koneksi ke cloud, menggunakan data lokal:', err);
+        // Bersihkan script tag
+        const scriptEl = document.getElementById('jsonpLoader');
+        if (scriptEl) scriptEl.remove();
+      };
+
+      // Buat elemen script secara dinamis
+      const oldScript = document.getElementById('jsonpLoader');
+      if (oldScript) oldScript.remove();
+
+      const script = document.createElement('script');
+      script.id = 'jsonpLoader';
+      script.src = SCRIPT_URL + '?callback=handleCloudResponse&t=' + Date.now();
+      script.onerror = function() {
+        console.warn('Koneksi cloud gagal, menggunakan data lokal.');
         setCloudStatus('offline', 'Offline');
-      }
+      };
+      document.body.appendChild(script);
     }
 
     // Kirim Data Terbaru ke Google Sheets
@@ -467,12 +480,15 @@
       };
 
       try {
-        // Mengirim data POST tanpa terhalang CORS
+        // Menggunakan URLSearchParams agar langsung diterima Apps Script tanpa blokir CORS
+        const formBody = new URLSearchParams();
+        formBody.append('data', JSON.stringify(payload));
+
         await fetch(SCRIPT_URL, {
           method: 'POST',
           mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formBody.toString()
         });
         setCloudStatus('online', 'Tersimpan');
       } catch (err) {
