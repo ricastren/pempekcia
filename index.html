@@ -267,23 +267,28 @@
         <button onclick="applyStockChanges()" class="w-full py-2.5 bg-amber-900 text-white rounded-xl text-xs font-semibold shadow hover:bg-amber-950 transition">Perbarui Stok Sekarang</button>
       </section>
 
-      <!-- ================= TAB 5: LABA & PENGATURAN 2 BARIS ================= -->
+      <!-- ================= TAB 5: LABA & GRAFIK STACKED BAR PER TIPE PEMPEK ================= -->
       <section id="tab-report" class="hidden space-y-3">
-        <div class="grid grid-cols-2 gap-2">
-          <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl">
-            <span class="text-[10px] text-emerald-800 block">TOTAL GROSS (OMSET)</span>
-            <span class="text-sm font-bold text-emerald-950 mt-1 block" id="grossTxt">IDR 0</span>
+        <div class="bg-white p-3.5 rounded-2xl border border-orange-100 shadow-xs space-y-3">
+          <div class="flex justify-between items-center border-b border-orange-100 pb-1.5">
+            <h3 class="text-xs font-bold text-amber-950">📊 Grafik Omset per Tipe Pempek (Antar Tanggal PO)</h3>
+            <span class="text-[9px] text-orange-600 bg-orange-50 font-bold px-2 py-0.5 rounded-md">Stacked Bar</span>
           </div>
-          <div class="bg-rose-50 border border-rose-200 p-3 rounded-2xl">
-            <span class="text-[10px] text-rose-800 block">TOTAL ESTIMASI MODAL</span>
-            <span class="text-sm font-bold text-rose-950 mt-1 block" id="modalTxt">IDR 0</span>
-          </div>
-        </div>
 
-        <div class="bg-amber-100/70 border border-amber-300 p-3.5 rounded-2xl">
-          <span class="text-xs font-bold text-amber-950 block">💰 Laba Bersih PO Ini</span>
-          <span class="text-xl font-bold text-amber-950 block mt-0.5" id="netProfitTxt">IDR 0</span>
-          <span class="text-[10px] text-amber-800/80 mt-1 block">*Omset dikurangi modal otomatis (termasuk Cuko 50ml/100ml)</span>
+          <!-- Legenda Warna Tipe Pempek -->
+          <div class="flex flex-wrap gap-2 text-[9px] font-semibold pt-1">
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-orange-400 inline-block"></span> Kulit</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-amber-500 inline-block"></span> Adaan</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-yellow-500 inline-block"></span> Lenjer</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block"></span> Cheese</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-sky-500 inline-block"></span> Selam</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-purple-500 inline-block"></span> Pkt Favorit</span>
+          </div>
+
+          <!-- Kontainer Grafik Batang Vertikal -->
+          <div id="stackedBarChartContainer" class="h-56 flex items-end gap-3 pt-6 px-2 overflow-x-auto hide-scrollbar border-b border-orange-200 relative">
+            <!-- Rendered by JS -->
+          </div>
         </div>
 
         <!-- 1. Master Harga Bahan -->
@@ -418,7 +423,7 @@
     ];
 
     let defaultCukoRecipe = {
-      batchYieldMl: 1000, // Total ml kuah cuko yang dihasilkan sekali resep
+      batchYieldMl: 1000,
       recipe: { gula_merah_cuko: 500, asam_cuko: 100, bawang_merah: 100, air_es: 500 }
     };
 
@@ -998,7 +1003,6 @@
       }
     }
 
-    // Kalkulasi Total Modal Termasuk Cuko (S = 50ml, L = 100ml)
     function calculateTotalModalForOrder(orderCounts, bags) {
       let pempekModal = 0;
       Object.keys(orderCounts || {}).forEach(menuId => {
@@ -1022,7 +1026,6 @@
       const cukoYieldMl = cukoRecipeData.batchYieldMl || 1000;
       const costPerMlCuko = cukoYieldMl > 0 ? (cukoBatchCost / cukoYieldMl) : 0;
 
-      // S = 50ml, L = 100ml
       const totalCukoMl = (totalCukoS * 50) + (totalCukoL * 100);
       cukoModal = totalCukoMl * costPerMlCuko;
 
@@ -1223,7 +1226,6 @@
       return Math.round(totalBatchCost / batchSize);
     }
 
-    // Save Master Bahan Baku
     function saveSingleIngredient(key) {
       const nameInput = document.getElementById(`ing_name_${key}`);
       const priceInput = document.getElementById(`ing_price_${key}`);
@@ -1251,7 +1253,6 @@
       }
     }
 
-    // Save Resep Menu
     function saveSingleRecipe(itemId) {
       const item = defaultMenu.find(m => m.id === itemId);
       if (!item) return;
@@ -1299,7 +1300,6 @@
       }
     }
 
-    // Save Resep Cuko
     function saveCukoRecipe() {
       const yieldInput = document.getElementById('cuko_batch_yield');
       if (yieldInput) cukoRecipeData.batchYieldMl = parseFloat(yieldInput.value) || 1000;
@@ -1362,7 +1362,6 @@
       }
     }
 
-    // Render Master Bahan & Resep
     function renderMasterAndRecipes() {
       const ingContainer = document.getElementById('masterIngredientsContainer');
       ingContainer.innerHTML = '';
@@ -1463,7 +1462,7 @@
         accordionContainer.appendChild(itemCard);
       });
 
-      // Render Resep Cuko (Dengan Total ml)
+      // Render Resep Cuko
       const cukoHpp = calculateBatchCost(cukoRecipeData.recipe);
       const cukoCard = document.createElement('div');
       cukoCard.className = 'bg-amber-50/50 rounded-xl border border-amber-200 overflow-hidden';
@@ -1542,6 +1541,69 @@
       renderMasterAndRecipes();
     }
 
+    function addMasterIngredient() {
+      const newKey = 'ing_' + Date.now();
+      masterIngredients[newKey] = { name: 'Bahan Baru', price: 10000, qty: 1000, unit: 'gram' };
+      renderMasterAndRecipes();
+    }
+
+    function deleteMasterIngredient(key) {
+      delete masterIngredients[key];
+      renderMasterAndRecipes();
+    }
+
+    // Render Grafik Stacked Bar & Rekap Laporan Lintas Tanggal PO
+    function renderStackedBarChart(poDatesMap) {
+      const chartContainer = document.getElementById('stackedBarChartContainer');
+      chartContainer.innerHTML = '';
+
+      const dates = Object.keys(poDatesMap).sort(); // Urutkan tanggal PO (Sumbu X)
+      if (dates.length === 0) {
+        chartContainer.innerHTML = '<div class="w-full text-center text-xs text-gray-400 py-12">Belum ada data transaksi PO</div>';
+        return;
+      }
+
+      // Cari max omset untuk skala tinggi bar (Sumbu Y)
+      let maxOmset = 100000;
+      dates.forEach(date => {
+        let total = Object.values(poDatesMap[date].types).reduce((a, b) => a + b, 0);
+        if (total > maxOmset) maxOmset = total;
+      });
+
+      const typeColors = {
+        kulit: 'bg-orange-400',
+        adaan: 'bg-amber-500',
+        lenjer: 'bg-yellow-500',
+        cheese: 'bg-emerald-500',
+        selam: 'bg-sky-500',
+        pkt_favorit: 'bg-purple-500'
+      };
+
+      dates.forEach(date => {
+        const batch = poDatesMap[date];
+        const totalBatchOmset = Object.values(batch.types).reduce((a, b) => a + b, 0);
+        const barHeightPercent = maxOmset > 0 ? Math.min(100, Math.round((totalBatchOmset / maxOmset) * 100)) : 0;
+
+        const colDiv = document.createElement('div');
+        colDiv.className = 'flex-1 h-full flex flex-col justify-end items-center gap-1 group relative';
+
+        // Tooltip sederhana saat disentuh
+        colDiv.innerHTML = `
+          <div class="text-[8px] font-bold text-gray-600 mb-0.5">Rp${(totalBatchOmset/1000).toFixed(0)}k</div>
+          <div class="w-full max-w-[28px] bg-gray-100 rounded-t-lg flex flex-col-reverse overflow-hidden transition-all duration-300" style="height: ${Math.max(15, barHeightPercent)}%;">
+            ${Object.keys(batch.types).map(tKey => {
+              const val = batch.types[tKey];
+              const p = totalBatchOmset > 0 ? (val / totalBatchOmset) * 100 : 0;
+              if (p <= 0) return '';
+              return `<div class="w-full ${typeColors[tKey] || 'bg-gray-400'}" style="height: ${p}%;" title="${tKey}: Rp${val.toLocaleString()}"></div>`;
+            }).join('')}
+          </div>
+          <span class="text-[8px] text-gray-500 font-semibold truncate max-w-[40px]">${date.substring(5)}</span>
+        `;
+        chartContainer.appendChild(colDiv);
+      });
+    }
+
     function renderRecapAndReports() {
       const currentPo = getCurrentPoDate();
       document.getElementById('recapBatchDateTxt').innerText = currentPo;
@@ -1551,30 +1613,44 @@
       document.getElementById('recapCustomerCount').innerText = `${filteredOrders.length} Orang`;
       document.getElementById('orderListBadgeCount').innerText = `${filteredOrders.length} Pesanan`;
 
-      const piecesTotal = {
-        selam: 0,
-        lenjer: 0,
-        adaan: 0,
-        kulit: 0,
-        cheese: 0
-      };
-
+      const piecesTotal = { selam: 0, lenjer: 0, adaan: 0, kulit: 0, cheese: 0 };
       let grossTotal = 0;
       let modalTotal = 0;
 
-      filteredOrders.forEach(order => {
+      // Grouping data untuk Grafik Stacked Bar dari SEMUA riwayat pesanan lintas tanggal PO
+      let poDatesMap = {};
+
+      orders.forEach(order => {
         const bags = order.bags || generateDefaultBags(order.counts);
         order.modal = calculateTotalModalForOrder(order.counts, bags);
         order.profit = order.gross - order.modal;
 
-        grossTotal += order.gross;
-        modalTotal += order.modal;
+        // Data khusus tab Laba (lintas tanggal PO)
+        const dStr = order.poDate || 'Tanpa Tanggal';
+        if (!poDatesMap[dStr]) {
+          poDatesMap[dStr] = { types: { kulit: 0, adaan: 0, lenjer: 0, cheese: 0, selam: 0, pkt_favorit: 0 } };
+        }
 
-        piecesTotal.cheese += (order.counts.cheese || 0);
-        piecesTotal.kulit += (order.counts.kulit || 0) + ((order.counts.pkt_favorit || 0) * 1);
-        piecesTotal.lenjer += (order.counts.lenjer || 0) + ((order.counts.pkt_favorit || 0) * 1);
-        piecesTotal.adaan += (order.counts.adaan || 0) + ((order.counts.pkt_favorit || 0) * 2);
-        piecesTotal.selam += (order.counts.selam || 0) + ((order.counts.pkt_favorit || 0) * 1);
+        // Hitung omset per tipe pempek di pesanan ini
+        Object.keys(order.counts || {}).forEach(mId => {
+          const qty = order.counts[mId] || 0;
+          const mObj = defaultMenu.find(m => m.id === mId);
+          if (mObj && qty > 0) {
+            poDatesMap[dStr].types[mId] = (poDatesMap[dStr].types[mId] || 0) + (mObj.price * qty);
+          }
+        });
+
+        // Akumulasi tab recap harian
+        if (order.poDate === currentPo) {
+          grossTotal += order.gross;
+          modalTotal += order.modal;
+
+          piecesTotal.cheese += (order.counts.cheese || 0);
+          piecesTotal.kulit += (order.counts.kulit || 0) + ((order.counts.pkt_favorit || 0) * 1);
+          piecesTotal.lenjer += (order.counts.lenjer || 0) + ((order.counts.pkt_favorit || 0) * 1);
+          piecesTotal.adaan += (order.counts.adaan || 0) + ((order.counts.pkt_favorit || 0) * 2);
+          piecesTotal.selam += (order.counts.selam || 0) + ((order.counts.pkt_favorit || 0) * 1);
+        }
       });
 
       const grandTotalPieces = Object.values(piecesTotal).reduce((a, b) => a + b, 0);
@@ -1644,6 +1720,7 @@
       document.getElementById('modalTxt').innerText = `IDR ${modalTotal.toLocaleString()}`;
       document.getElementById('netProfitTxt').innerText = `IDR ${(grossTotal - modalTotal).toLocaleString()}`;
 
+      renderStackedBarChart(poDatesMap);
       renderMasterAndRecipes();
     }
 
