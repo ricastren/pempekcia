@@ -495,34 +495,34 @@
       }
     }
 
+    // Listener Realtime Firestore Stabil
     function initFirebaseRealtime() {
       setCloudStatus('syncing', 'Menghubungkan...');
 
+      // 1. Stock Listener
       db.collection('data').doc('stock').onSnapshot((doc) => {
         if (doc.exists) {
           const d = doc.data();
-          if (d.pieces) stock = d.pieces;
-          if (d.packaging) packagingStock = d.packaging;
+          if (d && d.pieces) stock = d.pieces;
+          if (d && d.packaging) packagingStock = d.packaging;
           localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
           localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
           renderStock();
-          renderRecapAndReports();
         } else {
           db.collection('data').doc('stock').set({
             pieces: stock,
             packaging: packagingStock
           }, { merge: true });
         }
-        setCloudStatus('online', 'Realtime');
       }, (err) => {
-        console.warn('Gagal koneksi Firestore:', err);
-        setCloudStatus('offline', 'Offline');
+        console.warn('Firestore stock error:', err);
       });
 
+      // 2. Orders Listener
       db.collection('data').doc('orders').onSnapshot((doc) => {
         if (doc.exists) {
           const d = doc.data();
-          if (d.list) {
+          if (d && Array.isArray(d.list)) {
             orders = d.list;
             localStorage.setItem('pempek_cia_orders', JSON.stringify(orders));
             renderRecapAndReports();
@@ -531,14 +531,18 @@
           db.collection('data').doc('orders').set({ list: orders }, { merge: true });
         }
         setCloudStatus('online', 'Realtime');
+      }, (err) => {
+        console.warn('Firestore orders error:', err);
+        setCloudStatus('online', 'Realtime');
       });
 
+      // 3. Recipes & Master Listener
       db.collection('data').doc('recipes_master').onSnapshot((doc) => {
         if (doc.exists) {
           const d = doc.data();
-          if (d.ingredients) masterIngredients = d.ingredients;
-          if (d.menu) defaultMenu = d.menu;
-          if (d.cuko) cukoRecipeData = d.cuko;
+          if (d && d.ingredients) masterIngredients = d.ingredients;
+          if (d && d.menu) defaultMenu = d.menu;
+          if (d && d.cuko) cukoRecipeData = d.cuko;
           localStorage.setItem('pempek_cia_ingredients', JSON.stringify(masterIngredients));
           localStorage.setItem('pempek_cia_menu', JSON.stringify(defaultMenu));
           localStorage.setItem('pempek_cia_cukorecipe', JSON.stringify(cukoRecipeData));
@@ -551,6 +555,10 @@
             cuko: cukoRecipeData
           }, { merge: true });
         }
+        setCloudStatus('online', 'Realtime');
+      }, (err) => {
+        console.warn('Firestore recipes error:', err);
+        setCloudStatus('online', 'Realtime');
       });
     }
 
@@ -579,8 +587,8 @@
     }
 
     function getBagPackaging(bag) {
-      const c = bag.counts || bag;
-      const sizeType = bag.size || 'AUTO';
+      const c = (bag && bag.counts) ? bag.counts : (bag || {});
+      const sizeType = (bag && bag.size) ? bag.size : 'AUTO';
       const singlePieces = (c.selam || 0) + (c.lenjer || 0) + (c.adaan || 0) + (c.kulit || 0) + (c.cheese || 0);
       const favPackages = c.pkt_favorit || 0;
 
@@ -621,7 +629,8 @@
 
     function generateDefaultBags(orderCounts) {
       let bags = [];
-      const favCount = orderCounts.pkt_favorit || 0;
+      const oc = orderCounts || {};
+      const favCount = oc.pkt_favorit || 0;
 
       for (let f = 0; f < favCount; f++) {
         bags.push({
@@ -632,7 +641,7 @@
 
       let pool = [];
       ['selam', 'lenjer', 'adaan', 'kulit', 'cheese'].forEach(k => {
-        const cnt = orderCounts[k] || 0;
+        const cnt = oc[k] || 0;
         for (let i = 0; i < cnt; i++) pool.push(k);
       });
 
@@ -738,7 +747,7 @@
       }
 
       defaultBags.forEach((bag, idx) => {
-        const c = bag.counts;
+        const c = bag.counts || {};
         const itemsTxt = [];
         if (c.selam) itemsTxt.push(`Selam (${c.selam})`);
         if (c.lenjer) itemsTxt.push(`Lenjer (${c.lenjer})`);
@@ -1021,14 +1030,15 @@
 
     function calculateTotalModalForOrder(orderCounts, bags) {
       let pempekModal = 0;
-      Object.keys(orderCounts || {}).forEach(menuId => {
-        const qty = orderCounts[menuId];
+      const oc = orderCounts || {};
+      Object.keys(oc).forEach(menuId => {
+        const qty = oc[menuId] || 0;
         const mObj = defaultMenu.find(m => m.id === menuId);
         if (mObj) pempekModal += (mObj.hpp || 0) * qty;
       });
 
       let cukoModal = 0;
-      const resolvedBags = (bags && bags.length > 0) ? bags : generateDefaultBags(orderCounts);
+      const resolvedBags = (bags && bags.length > 0) ? bags : generateDefaultBags(oc);
       
       let totalCukoS = 0;
       let totalCukoL = 0;
@@ -1134,15 +1144,16 @@
         return;
       }
 
-      for (let id in order.counts) {
-        const qty = order.counts[id];
+      const oc = order.counts || {};
+      for (let id in oc) {
+        const qty = oc[id];
         if (qty > 0) {
           const item = defaultMenu.find(m => m.id === id);
-          if (item.isPackage) {
+          if (item && item.isPackage) {
             for (let p in item.breakdown) {
               stock[p] = (stock[p] || 0) + (item.breakdown[p] * qty);
             }
-          } else {
+          } else if (item) {
             stock[id] = (stock[id] || 0) + qty;
           }
         }
@@ -1169,16 +1180,17 @@
       if (idx === -1) return;
 
       const order = orders[idx];
+      const oc = order.counts || {};
 
-      for (let id in order.counts) {
-        const qty = order.counts[id];
+      for (let id in oc) {
+        const qty = oc[id];
         if (qty > 0) {
           const item = defaultMenu.find(m => m.id === id);
-          if (item.isPackage) {
+          if (item && item.isPackage) {
             for (let p in item.breakdown) {
               stock[p] = (stock[p] || 0) + (item.breakdown[p] * qty);
             }
-          } else {
+          } else if (item) {
             stock[id] = (stock[id] || 0) + qty;
           }
         }
@@ -1195,7 +1207,7 @@
 
       syncToCloud();
 
-      cart = { ...order.counts };
+      cart = { ...oc };
       for (let k in cart) {
         if (cart[k] === 0) delete cart[k];
       }
@@ -1209,7 +1221,7 @@
         setSplitMode(false);
       }
 
-      document.getElementById('editBanner').classList.add('hidden');
+      document.getElementById('editBanner').classList.remove('hidden');
       document.getElementById('btnSubmitOrder').innerText = 'Perbarui Pesanan 🔄';
 
       switchTab('order');
@@ -1303,7 +1315,7 @@
       const item = defaultMenu.find(m => m.id === itemId);
       if (item) {
         if (!item.recipe) item.recipe = {};
-        if (!item.recipe[ingKey]) item.recipe[ingKey] = 10;
+        item.recipe[ingKey] = 10;
         saveSingleRecipe(itemId);
       }
     }
@@ -1342,7 +1354,7 @@
       if (!ingKey) return;
 
       if (!cukoRecipeData.recipe) cukoRecipeData.recipe = {};
-      if (!cukoRecipeData.recipe[ingKey]) cukoRecipeData.recipe[ingKey] = 10;
+      cukoRecipeData.recipe[ingKey] = 10;
       saveCukoRecipe();
     }
 
@@ -1380,6 +1392,7 @@
 
     function renderMasterAndRecipes() {
       const ingContainer = document.getElementById('masterIngredientsContainer');
+      if (!ingContainer) return;
       ingContainer.innerHTML = '';
       for (let key in masterIngredients) {
         const ing = masterIngredients[key];
@@ -1406,6 +1419,7 @@
       }
 
       const accordionContainer = document.getElementById('recipeAccordionContainer');
+      if (!accordionContainer) return;
       accordionContainer.innerHTML = '';
 
       defaultMenu.forEach(item => {
@@ -1557,8 +1571,472 @@
       renderMasterAndRecipes();
     }
 
+    function renderStackedBarChart(poDatesMap) {
+      const chartContainer = document.getElementById('stackedBarChartContainer');
+      if (!chartContainer) return;
+      chartContainer.innerHTML = '';
+
+      const dates = Object.keys(poDatesMap || {}).sort();
+      if (dates.length === 0) {
+        chartContainer.innerHTML = '<div class="w-full text-center text-xs text-gray-400 py-12">Belum ada data transaksi PO</div>';
+        return;
+      }
+
+      let maxOmset = 100000;
+      dates.forEach(date => {
+        let total = Object.values(poDatesMap[date].types || {}).reduce((a, b) => a + b, 0);
+        if (total > maxOmset) maxOmset = total;
+      });
+
+      const typeColors = {
+        kulit: 'bg-orange-400',
+        adaan: 'bg-amber-500',
+        lenjer: 'bg-yellow-500',
+        cheese: 'bg-emerald-500',
+        selam: 'bg-sky-500',
+        pkt_favorit: 'bg-purple-500'
+      };
+
+      dates.forEach(date => {
+        const batch = poDatesMap[date];
+        const types = batch.types || {};
+        const totalBatchOmset = Object.values(types).reduce((a, b) => a + b, 0);
+        const barHeightPercent = maxOmset > 0 ? Math.min(100, Math.round((totalBatchOmset / maxOmset) * 100)) : 0;
+
+        const colDiv = document.createElement('div');
+        colDiv.className = 'flex-1 h-full flex flex-col justify-end items-center gap-1 group relative';
+
+        colDiv.innerHTML = `
+          <div class="text-[8px] font-bold text-gray-600 mb-0.5">Rp${(totalBatchOmset/1000).toFixed(0)}k</div>
+          <div class="w-full max-w-[28px] bg-gray-100 rounded-t-lg flex flex-col-reverse overflow-hidden transition-all duration-300" style="height: ${Math.max(15, barHeightPercent)}%;">
+            ${Object.keys(types).map(tKey => {
+              const val = types[tKey] || 0;
+              const p = totalBatchOmset > 0 ? (val / totalBatchOmset) * 100 : 0;
+              if (p <= 0) return '';
+              return `<div class="w-full ${typeColors[tKey] || 'bg-gray-400'}" style="height: ${p}%;" title="${tKey}: Rp${val.toLocaleString()}"></div>`;
+            }).join('')}
+          </div>
+          <span class="text-[8px] text-gray-500 font-semibold truncate max-w-[40px]">${date.substring(5)}</span>
+        `;
+        chartContainer.appendChild(colDiv);
+      });
+    }
+
+    function renderRecapAndReports() {
+      const currentPo = getCurrentPoDate();
+      const recapDateTxt = document.getElementById('recapBatchDateTxt');
+      if (recapDateTxt) recapDateTxt.innerText = currentPo;
+      
+      const subTitle = document.getElementById('orderListPageSubtitle');
+      if (subTitle) subTitle.innerText = `PO Tanggal: ${currentPo}`;
+
+      const safeOrders = Array.isArray(orders) ? orders : [];
+      const filteredOrders = safeOrders.filter(o => o && o.poDate === currentPo);
+      
+      const custCountEl = document.getElementById('recapCustomerCount');
+      if (custCountEl) custCountEl.innerText = `${filteredOrders.length} Orang`;
+      
+      const badgeCountEl = document.getElementById('orderListBadgeCount');
+      if (badgeCountEl) badgeCountEl.innerText = `${filteredOrders.length} Pesanan`;
+
+      const piecesTotal = { selam: 0, lenjer: 0, adaan: 0, kulit: 0, cheese: 0 };
+      let grossTotal = 0;
+      let modalTotal = 0;
+      let poDatesMap = {};
+
+      safeOrders.forEach(order => {
+        if (!order) return;
+        const oc = order.counts || {};
+        const bags = order.bags || generateDefaultBags(oc);
+        order.modal = calculateTotalModalForOrder(oc, bags);
+        order.profit = (order.gross || 0) - order.modal;
+
+        const dStr = order.poDate || 'Tanpa Tanggal';
+        if (!poDatesMap[dStr]) {
+          poDatesMap[dStr] = { types: { kulit: 0, adaan: 0, lenjer: 0, cheese: 0, selam: 0, pkt_favorit: 0 } };
+        }
+
+        Object.keys(oc).forEach(mId => {
+          const qty = oc[mId] || 0;
+          const mObj = defaultMenu.find(m => m.id === mId);
+          if (mObj && qty > 0) {
+            poDatesMap[dStr].types[mId] = (poDatesMap[dStr].types[mId] || 0) + (mObj.price * qty);
+          }
+        });
+
+        if (order.poDate === currentPo) {
+          grossTotal += (order.gross || 0);
+          modalTotal += (order.modal || 0);
+
+          piecesTotal.cheese += (oc.cheese || 0);
+          piecesTotal.kulit += (oc.kulit || 0) + ((oc.pkt_favorit || 0) * 1);
+          piecesTotal.lenjer += (oc.lenjer || 0) + ((oc.pkt_favorit || 0) * 1);
+          piecesTotal.adaan += (oc.adaan || 0) + ((oc.pkt_favorit || 0) * 2);
+          piecesTotal.selam += (oc.selam || 0) + ((oc.pkt_favorit || 0) * 1);
+        }
+      });
+
+      const grandTotalPieces = Object.values(piecesTotal).reduce((a, b) => a + b, 0);
+      const grandTotalEl = document.getElementById('grandTotalPiecesTxt');
+      if (grandTotalEl) grandTotalEl.innerText = `${grandTotalPieces.toLocaleString()} Butir`;
+
+      const productionContainer = document.getElementById('productionItemsList');
+      if (productionContainer) {
+        const itemNames = {
+          selam: 'Kapal Selam Mini 🥚',
+          lenjer: 'Lenjer Gurih 🥖',
+          adaan: 'Adaan Bawang 🧅',
+          kulit: 'Kulit Crispy 🤎',
+          cheese: 'Cheese Melt 🧀'
+        };
+
+        productionContainer.innerHTML = Object.keys(piecesTotal).map(k => `
+          <div class="flex justify-between items-center bg-orange-50/70 px-3 py-1.5 rounded-xl border border-orange-100">
+            <span class="font-semibold text-amber-950">${itemNames[k]}</span>
+            <span class="font-bold text-amber-950 bg-white px-2.5 py-0.5 rounded-lg border border-orange-200">
+              ${piecesTotal[k]} <span class="text-[10px] text-gray-500 font-normal">butir</span>
+            </span>
+          </div>
+        `).join('');
+      }
+
+      const batchListContainer = document.getElementById('batchOrderList');
+      if (batchListContainer) {
+        if (filteredOrders.length === 0) {
+          batchListContainer.innerHTML = `<div class="text-center text-gray-400 py-10 text-xs">Belum ada pesanan di tanggal PO ini</div>`;
+        } else {
+          batchListContainer.innerHTML = filteredOrders.map((o, idx) => {
+            const oc = o.counts || {};
+            const itemSummary = [];
+            if (oc.selam) itemSummary.push(`Selam (${oc.selam})`);
+            if (oc.lenjer) itemSummary.push(`Lenjer (${oc.lenjer})`);
+            if (oc.adaan) itemSummary.push(`Adaan (${oc.adaan})`);
+            if (oc.kulit) itemSummary.push(`Kulit (${oc.kulit})`);
+            if (oc.cheese) itemSummary.push(`Cheese (${oc.cheese})`);
+            if (oc.pkt_favorit) itemSummary.push(`Paket Favorit (${oc.pkt_favorit})`);
+
+            const bags = o.bags || generateDefaultBags(oc);
+            const packInfo = o.packaging || calculateOrderPackaging(oc, bags);
+            const packLabel = getPackagingLabel(packInfo);
+            const splitBadge = bags.length > 1 ? `<span class="bg-amber-200 text-amber-950 font-bold px-1.5 py-0.5 rounded text-[9px]">${bags.length} Kantong</span>` : '';
+
+            return `
+              <div class="p-3 bg-white rounded-2xl border border-orange-100 shadow-xs space-y-1.5">
+                <div class="flex justify-between items-center">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-bold text-xs text-amber-950">${idx + 1}. ${o.cust}</span>
+                    ${splitBadge}
+                  </div>
+                  <span class="text-pempek font-bold text-xs">IDR ${(o.gross || 0).toLocaleString()}</span>
+                </div>
+                <div class="text-[11px] text-gray-600 font-medium leading-relaxed">
+                  ${itemSummary.join(', ')}
+                </div>
+                <div class="text-[9.5px] text-amber-800 bg-orange-100/60 px-2 py-0.5 rounded-md inline-block">
+                  ${packLabel || 'Tanpa Kemasan Tambahan'}
+                </div>
+                <div class="flex justify-end gap-1.5 pt-1.5 border-t border-orange-100">
+                  <button onclick="editOrder('${o.id}')" class="px-2.5 py-1 bg-white border border-orange-200 text-amber-900 rounded-lg text-[10px] font-bold hover:bg-orange-100">✏️ Edit</button>
+                  <button onclick="deleteOrder('${o.id}')" class="px-2.5 py-1 bg-red-50 border border-red-200 text-red-600 rounded-lg text-[10px] font-bold hover:bg-red-100">🗑️ Hapus</button>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      const grossEl = document.getElementById('grossTxt');
+      if (grossEl) grossEl.innerText = `IDR ${grossTotal.toLocaleString()}`;
+      
+      const modalEl = document.getElementById('modalTxt');
+      if (modalEl) modalEl.innerText = `IDR ${modalTotal.toLocaleString()}`;
+      
+      const netProfitEl = document.getElementById('netProfitTxt');
+      if (netProfitEl) netProfitEl.innerText = `IDR ${(grossTotal - modalTotal).toLocaleString()}`;
+
+      renderStackedBarChart(poDatesMap);
+    }
+
+    // Generator Lembar Universal (A3 & A4)
+    function generateFullSheet(formatType, pageStickers, pageIndex, totalPages, bgImg, callback) {
+      const isA3 = (formatType === 'A3');
+      const SHEET_WIDTH = isA3 ? 3508 : 2480;
+      const SHEET_HEIGHT = isA3 ? 4960 : 3508;
+      const COLS = isA3 ? 5 : 3;
+      const ROWS = isA3 ? 7 : 5;
+      const TOTAL_SLOTS = COLS * ROWS;
+      const STICKER_SIZE = isA3 ? 624 : 640;
+      const GAP = 40;
+
+      const totalGridW = (COLS * STICKER_SIZE) + ((COLS - 1) * GAP);
+      const totalGridH = (ROWS * STICKER_SIZE) + ((ROWS - 1) * GAP);
+      const MARGIN_X = Math.floor((SHEET_WIDTH - totalGridW) / 2);
+      const MARGIN_Y = Math.floor((SHEET_HEIGHT - totalGridH) / 2);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = SHEET_WIDTH;
+      canvas.height = SHEET_HEIGHT;
+      const ctx = canvas.getContext("2d");
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, SHEET_WIDTH, SHEET_HEIGHT);
+
+      for (let idx = 0; idx < TOTAL_SLOTS; idx++) {
+        const col = idx % COLS;
+        const row = Math.floor(idx / COLS);
+        const x = MARGIN_X + col * (STICKER_SIZE + GAP);
+        const y = MARGIN_Y + row * (STICKER_SIZE + GAP);
+
+        ctx.drawImage(bgImg, x, y, STICKER_SIZE, STICKER_SIZE);
+
+        ctx.strokeStyle = "#e2e8f0";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, STICKER_SIZE, STICKER_SIZE);
+
+        const stk = pageStickers[idx];
+        if (stk) {
+          ctx.fillStyle = "#0d1b2a";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.font = "bold 15px 'Fredoka', sans-serif";
+
+          const c = stk.counts || {};
+          const scale = STICKER_SIZE / 1024;
+          const ovals = [
+            { val: c.selam, cx: 419.5, cy: 450.0 },
+            { val: c.lenjer, cx: 419.5, cy: 500.5 },
+            { val: c.adaan, cx: 419.5, cy: 552.0 },
+            { val: c.kulit, cx: 419.5, cy: 602.0 },
+            { val: c.cheese, cx: 419.5, cy: 654.0 },
+            { val: c.pkt_favorit, cx: 419.5, cy: 707.0 }
+          ];
+
+          ovals.forEach(o => {
+            if (o.val && o.val > 0) {
+              ctx.fillText(String(o.val), x + (o.cx * scale), y + (o.cy * scale) - 1);
+            }
+          });
+
+          ctx.font = "bold 17px 'Fredoka', sans-serif";
+          ctx.fillText(stk.labelNama, x + (260 * scale), y + (862 * scale));
+        }
+      }
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "bold 24px 'Fredoka', sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText(`Pempek Cia - Lembar ${formatType} (${pageIndex + 1}/${totalPages})`, SHEET_WIDTH - MARGIN_X, SHEET_HEIGHT - 35);
+
+      callback(canvas.toDataURL("image/png"));
+    }
+
+    function getAllStickersForPO(filteredOrders) {
+      let stickerList = [];
+
+      filteredOrders.forEach(o => {
+        const oc = o.counts || {};
+        const bags = (o.bags && o.bags.length > 0) ? o.bags : generateDefaultBags(oc);
+
+        if (bags.length > 1) {
+          bags.forEach((bag, bIdx) => {
+            const bCounts = bag.counts || bag;
+            stickerList.push({
+              labelNama: `${o.cust} [${bIdx + 1}/${bags.length}]`,
+              counts: bCounts
+            });
+          });
+        } else {
+          const singleCounts = bags.length === 1 ? (bags[0].counts || bags[0]) : oc;
+          stickerList.push({
+            labelNama: o.cust,
+            counts: singleCounts
+          });
+        }
+      });
+
+      return stickerList;
+    }
+
+    function openSheetModal(formatType = 'A3') {
+      const currentPo = getCurrentPoDate();
+      const filteredOrders = orders.filter(o => o && o.poDate === currentPo);
+
+      if (filteredOrders.length === 0) {
+        alert('Belum ada pesanan untuk dicetak di batch PO ini!');
+        return;
+      }
+
+      const allStickers = getAllStickersForPO(filteredOrders);
+      const isA3 = (formatType === 'A3');
+      const STICKERS_PER_PAGE = isA3 ? 35 : 15;
+      const totalPages = Math.ceil(allStickers.length / STICKERS_PER_PAGE);
+
+      document.getElementById('modalSheetTitle').innerText = `Lembaran Kertas ${formatType} Siap Cetak 📄`;
+      document.getElementById('modalSheetSubtitle').innerText = `${STICKERS_PER_PAGE} stiker per lembar (Sisa diisi stiker cadangan polos)`;
+
+      const container = document.getElementById('sheetContainer');
+      container.innerHTML = `<div class="text-center py-8 text-xs text-gray-500 font-semibold">Menyusun stiker lembaran ${formatType}...</div>`;
+      document.getElementById('sheetModal').classList.remove('hidden');
+
+      const bgImg = new Image();
+      bgImg.src = "sticker.png";
+      bgImg.onload = function() {
+        let cardsHtml = [];
+        let completed = 0;
+
+        for (let p = 0; p < totalPages; p++) {
+          const pageStickers = allStickers.slice(p * STICKERS_PER_PAGE, (p + 1) * STICKERS_PER_PAGE);
+          const filledOrderCount = pageStickers.length;
+          const blankCount = STICKERS_PER_PAGE - filledOrderCount;
+
+          generateFullSheet(formatType, pageStickers, p, totalPages, bgImg, function(pngUrl) {
+            cardsHtml[p] = `
+              <div class="bg-orange-50/70 p-3 rounded-2xl border border-orange-200 flex flex-col items-center gap-2">
+                <div class="w-full flex justify-between items-center px-1">
+                  <div>
+                    <span class="font-bold text-amber-950 text-xs">Lembar ${formatType} #${p + 1}</span>
+                    <span class="text-[10px] text-gray-500 block">
+                      ${filledOrderCount} Stiker Pesanan + ${blankCount} Stiker Kosong
+                    </span>
+                  </div>
+                  <a href="${pngUrl}" download="Lembar_${formatType}_PempekCia_${currentPo}_Part${p + 1}.png" class="text-xs bg-pempek text-white font-bold px-3 py-1.5 rounded-xl shadow-xs hover:bg-orange-500 flex items-center gap-1">
+                    <span>⬇️</span> Utuh ${formatType} (.PNG)
+                  </a>
+                </div>
+                <img src="${pngUrl}" class="w-full h-auto rounded-lg shadow-sm border border-orange-200 bg-white" alt="Lembar ${formatType} Part ${p + 1}" />
+              </div>
+            `;
+            completed++;
+            if (completed === totalPages) {
+              container.innerHTML = cardsHtml.join('');
+            }
+          });
+        }
+      };
+    }
+
+    function closeSheetModal() {
+      document.getElementById('sheetModal').classList.add('hidden');
+    }
+
+    function renderStock() {
+      const packContainer = document.getElementById('packagingStockList');
+      if (!packContainer) return;
+      packContainer.innerHTML = '';
+      const packLabels = {
+        cuko_s: 'Kantong Cuko S (50ml)',
+        cuko_l: 'Kantong Cuko L (100ml)',
+        pempek_s: 'Kantong Pempek S (≤5 pcs)',
+        pempek_m: 'Kantong Pempek M (6-10 pcs)',
+        pempek_l: 'Kantong Pempek L (11-15 pcs)'
+      };
+
+      for (let key in packLabels) {
+        const currentVal = packagingStock[key] || 0;
+        const isNegative = currentVal < 0;
+        const colorClass = isNegative ? 'text-red-600 bg-red-50 border-red-200' : 'text-amber-950 bg-orange-50/50 border-orange-100';
+
+        const row = document.createElement('div');
+        row.className = 'flex justify-between items-center bg-white p-2 rounded-xl border border-orange-100 shadow-xs';
+        row.innerHTML = `
+          <span class="text-xs font-semibold text-amber-950">${packLabels[key]}</span>
+          <div class="flex items-center gap-2">
+            <span class="w-12 text-center text-xs font-bold py-1 px-1.5 rounded-lg border ${colorClass}">
+              ${currentVal}
+            </span>
+            <input type="number" id="adj_pack_${key}" placeholder="0" class="w-14 text-center text-xs font-bold bg-white border border-amber-300 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-amber-500">
+            <span class="text-[10px] text-gray-400 w-5">lbr</span>
+          </div>
+        `;
+        packContainer.appendChild(row);
+      }
+
+      const container = document.getElementById('stockList');
+      if (!container) return;
+      container.innerHTML = '';
+      const singleItems = defaultMenu.filter(m => !m.isPackage);
+
+      singleItems.forEach(item => {
+        const currentVal = stock[item.id] || 0;
+        const isNegative = currentVal < 0;
+        const colorClass = isNegative ? 'text-red-600 bg-red-50 border-red-200' : 'text-amber-950 bg-orange-50/50 border-orange-100';
+
+        const row = document.createElement('div');
+        row.className = 'flex justify-between items-center bg-white p-2.5 rounded-xl border border-orange-100 shadow-xs';
+        row.innerHTML = `
+          <span class="text-xs font-semibold text-amber-950">${item.name}</span>
+          <div class="flex items-center gap-2">
+            <span class="w-12 text-center text-xs font-bold py-1 px-1.5 rounded-lg border ${colorClass}">
+              ${currentVal}
+            </span>
+            <input type="number" id="adj_stock_${item.id}" placeholder="0" class="w-14 text-center text-xs font-bold bg-white border border-amber-300 rounded-lg p-1 focus:outline-none focus:ring-1 focus:ring-amber-500">
+            <span class="text-[10px] text-gray-400 w-5">pcs</span>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function applyStockChanges() {
+      let anyChange = false;
+
+      ['cuko_s', 'cuko_l', 'pempek_s', 'pempek_m', 'pempek_l'].forEach(key => {
+        const el = document.getElementById(`adj_pack_${key}`);
+        const delta = parseInt(el.value);
+        if (!isNaN(delta) && delta !== 0) {
+          packagingStock[key] = (packagingStock[key] || 0) + delta;
+          el.value = '';
+          anyChange = true;
+        }
+      });
+
+      const singleItems = defaultMenu.filter(m => !m.isPackage);
+      singleItems.forEach(item => {
+        const el = document.getElementById(`adj_stock_${item.id}`);
+        const delta = parseInt(el.value);
+        if (!isNaN(delta) && delta !== 0) {
+          stock[item.id] = (stock[item.id] || 0) + delta;
+          el.value = '';
+          anyChange = true;
+        }
+      });
+
+      if (!anyChange) {
+        alert('Masukkan angka penambahan (+) atau pengurangan (-) di kolom yang tersedia terlebih dahulu.');
+        return;
+      }
+
+      localStorage.setItem('pempek_cia_stock', JSON.stringify(stock));
+      localStorage.setItem('pempek_cia_packaging', JSON.stringify(packagingStock));
+
+      syncToCloud();
+      renderStock();
+
+      alert('Stok berhasil diperbarui dan disinkronkan! ✨');
+    }
+
+    function switchTab(tab) {
+      ['order', 'recap', 'orders-list', 'stock', 'report'].forEach(t => {
+        const el = document.getElementById(`tab-${t}`);
+        const nav = document.getElementById(`nav-${t}`);
+        if (el) el.classList.add('hidden');
+        if (nav) nav.className = 'flex flex-col items-center gap-0.5 text-amber-900/40 hover:text-pempek flex-1';
+      });
+
+      const activeEl = document.getElementById(`tab-${tab}`);
+      const activeNav = document.getElementById(`nav-${tab}`);
+      if (activeEl) activeEl.classList.remove('hidden');
+      if (activeNav) activeNav.className = 'flex flex-col items-center gap-0.5 text-pempek flex-1';
+
+      if (tab === 'recap' || tab === 'orders-list' || tab === 'report') {
+        renderRecapAndReports();
+      }
+    }
+
+    // Inisialisasi Pertama Kali
     renderMenu();
     renderStock();
+    renderMasterAndRecipes();
     renderRecapAndReports();
     initFirebaseRealtime();
   </script>
