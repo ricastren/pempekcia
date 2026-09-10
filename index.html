@@ -77,7 +77,7 @@
     </div>
 
     <!-- Main Container Body -->
-    <div class="flex-1 overflow-y-auto hide-scrollbar p-4 space-y-3.5 pb-20" id="mainContainer">
+    <div class="flex-1 overflow-y-auto hide-scrollbar p-4 space-y-3 pb-20" id="mainContainer">
 
       <!-- ================= TAB 1: INPUT ORDER PO ================= -->
       <section id="tab-order" class="space-y-3">
@@ -102,6 +102,45 @@
 
           <div id="menuContainer" class="space-y-2">
             <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Pengaturan Kemasan & Stiker (Split / Single) -->
+        <div class="bg-white p-3 rounded-2xl shadow-xs border border-orange-100 space-y-2">
+          <div class="flex justify-between items-center">
+            <h3 class="text-xs font-bold text-amber-950 flex items-center gap-1">
+              <span>🛍️</span> Kemasan & Stiker
+            </h3>
+            <span id="totalItemsBadge" class="text-[10px] bg-orange-100 text-pempek font-bold px-2 py-0.5 rounded-md">0 Butir Dipilih</span>
+          </div>
+
+          <!-- Pilihan Split Mode -->
+          <div class="flex gap-1.5">
+            <button type="button" onclick="setSplitMode(false)" id="btnModeSingle" class="flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-amber-900 text-white shadow-xs">
+              Gabung Standar
+            </button>
+            <button type="button" onclick="setSplitMode(true)" id="btnModeSplit" class="flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-orange-50 text-amber-900 border border-orange-200 hover:bg-orange-100">
+              Pisah Kantong (Split)
+            </button>
+          </div>
+
+          <!-- Panel Split Kantong -->
+          <div id="splitBagSection" class="hidden space-y-2 pt-1 border-t border-orange-100">
+            <div class="flex gap-1.5">
+              <button type="button" onclick="autoDistributeBags()" class="flex-1 py-1.5 bg-amber-100 text-amber-950 rounded-lg text-[10px] font-bold hover:bg-amber-200">
+                ⚡ Auto Split per 5 Pcs
+              </button>
+              <button type="button" onclick="addManualBag()" class="py-1.5 px-3 bg-white border border-orange-200 text-amber-950 rounded-lg text-[10px] font-bold hover:bg-orange-50">
+                + Kantong
+              </button>
+            </div>
+
+            <!-- List Kantong yang Disusun -->
+            <div id="bagsListContainer" class="space-y-2 max-h-48 overflow-y-auto hide-scrollbar">
+              <!-- Rendered by JS -->
+            </div>
+
+            <div id="bagAllocStatus" class="text-[10px] text-center font-bold"></div>
           </div>
         </div>
 
@@ -146,7 +185,6 @@
           </div>
         </div>
 
-        <!-- Tombol Generate Lembar A3 -->
         <div class="pt-1">
           <button onclick="openA3SheetModal()" class="w-full py-2.5 bg-amber-900 text-white rounded-2xl text-xs font-bold shadow-md hover:bg-amber-950 transition flex items-center justify-center gap-2">
             <span>📄</span> Download Lembar Stiker A3 (5 Kolom Utuh)
@@ -252,7 +290,6 @@
         <button onclick="closeA3SheetModal()" class="text-gray-400 hover:text-gray-600 font-bold text-base">✕</button>
       </div>
 
-      <!-- Area Card Lembar A3 -->
       <div class="flex-1 overflow-y-auto hide-scrollbar p-1 space-y-3" id="a3SheetContainer">
         <!-- Rendered dynamically -->
       </div>
@@ -295,6 +332,8 @@
     ];
 
     let cart = {};
+    let isSplitMode = false;
+    let customBags = []; // Array of { selam, lenjer, adaan, kulit, cheese, pkt_favorit }
     let editingOrderId = null;
 
     let stock = JSON.parse(localStorage.getItem('pempek_cia_stock')) || {
@@ -399,45 +438,77 @@
       }
     }
 
-    function calculateOrderPackaging(counts) {
-      const c = counts || {};
+    // Hitung Kemasan Berdasarkan 1 Kantong Tertentu
+    function getBagPackaging(bagCounts) {
+      const c = bagCounts || {};
       const singlePieces = (c.selam || 0) + (c.lenjer || 0) + (c.adaan || 0) + (c.kulit || 0) + (c.cheese || 0);
       const favPackages = c.pkt_favorit || 0;
 
-      let needed = {
-        cuko_s: 0,
-        cuko_l: 0,
-        pempek_s: 0,
-        pempek_m: 0,
-        pempek_l: 0
-      };
+      let pack = { cuko_s: 0, cuko_l: 0, pempek_s: 0, pempek_m: 0, pempek_l: 0 };
 
       if (favPackages > 0) {
-        needed.pempek_s += favPackages;
-        needed.cuko_s += favPackages;
+        pack.pempek_s += favPackages;
+        pack.cuko_s += favPackages;
+      }
+
+      if (singlePieces > 0) {
+        if (singlePieces <= 5) {
+          pack.pempek_s += 1;
+          pack.cuko_s += 1;
+        } else if (singlePieces <= 10) {
+          pack.pempek_m += 1;
+          pack.cuko_l += 1;
+        } else {
+          pack.pempek_l += 1;
+          pack.cuko_s += 1;
+          pack.cuko_l += 1;
+        }
+      }
+      return pack;
+    }
+
+    // Hitung Kemasan Otomatis untuk Seluruh Pesanan (Default atau Split)
+    function calculateOrderPackaging(orderCounts, bags) {
+      let totalPack = { cuko_s: 0, cuko_l: 0, pempek_s: 0, pempek_m: 0, pempek_l: 0 };
+
+      if (bags && bags.length > 0) {
+        bags.forEach(b => {
+          const p = getBagPackaging(b);
+          for (let k in p) totalPack[k] += p[k];
+        });
+        return totalPack;
+      }
+
+      // Default single mode jika tidak ada bags
+      const c = orderCounts || {};
+      const singlePieces = (c.selam || 0) + (c.lenjer || 0) + (c.adaan || 0) + (c.kulit || 0) + (c.cheese || 0);
+      const favPackages = c.pkt_favorit || 0;
+
+      if (favPackages > 0) {
+        totalPack.pempek_s += favPackages;
+        totalPack.cuko_s += favPackages;
       }
 
       if (singlePieces > 0) {
         let remaining = singlePieces;
         while (remaining > 0) {
           if (remaining <= 5) {
-            needed.pempek_s += 1;
-            needed.cuko_s += 1;
+            totalPack.pempek_s += 1;
+            totalPack.cuko_s += 1;
             remaining -= 5;
           } else if (remaining <= 10) {
-            needed.pempek_m += 1;
-            needed.cuko_l += 1;
+            totalPack.pempek_m += 1;
+            totalPack.cuko_l += 1;
             remaining -= 10;
           } else {
-            needed.pempek_l += 1;
-            needed.cuko_s += 1;
-            needed.cuko_l += 1;
+            totalPack.pempek_l += 1;
+            totalPack.cuko_s += 1;
+            totalPack.cuko_l += 1;
             remaining -= 15;
           }
         }
       }
-
-      return needed;
+      return totalPack;
     }
 
     function getPackagingLabel(needed) {
@@ -456,7 +527,7 @@
       return res.join(' • ');
     }
 
-    // Render Menu Items dengan Tombol (+ / -) DAN Input Manual
+    // Render Menu Items
     function renderMenu() {
       const container = document.getElementById('menuContainer');
       container.innerHTML = '';
@@ -483,6 +554,7 @@
         container.appendChild(div);
       });
       calculateTotal();
+      renderSplitSection();
     }
 
     function updateCart(id, delta) {
@@ -499,27 +571,202 @@
         cart[id] = parsed;
       }
       calculateTotal();
+      renderSplitSection();
     }
 
     function resetCart() {
       cart = {};
+      isSplitMode = false;
+      customBags = [];
       editingOrderId = null;
       document.getElementById('custName').value = '';
       document.getElementById('editBanner').classList.add('hidden');
       document.getElementById('btnSubmitOrder').innerText = 'Simpan Pesanan Masuk 📥';
+      setSplitMode(false);
       renderMenu();
     }
 
     function calculateTotal() {
       let total = 0;
+      let totalPieces = 0;
       Object.keys(cart).forEach(id => {
         const item = defaultMenu.find(m => m.id === id);
-        if (item) total += item.price * (cart[id] || 0);
+        if (item) {
+          total += item.price * (cart[id] || 0);
+          totalPieces += (cart[id] || 0);
+        }
       });
       document.getElementById('totalBelanjaTxt').innerText = `IDR ${total.toLocaleString()}`;
+      document.getElementById('totalItemsBadge').innerText = `${totalPieces} Butir/Pkt Dipilih`;
       return total;
     }
 
+    // ================= LOGIKA SPLIT KANTONG =================
+    function setSplitMode(val) {
+      isSplitMode = val;
+      const sec = document.getElementById('splitBagSection');
+      const btnSingle = document.getElementById('btnModeSingle');
+      const btnSplit = document.getElementById('btnModeSplit');
+
+      if (isSplitMode) {
+        sec.classList.remove('hidden');
+        btnSplit.className = 'flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-amber-900 text-white shadow-xs';
+        btnSingle.className = 'flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-orange-50 text-amber-900 border border-orange-200 hover:bg-orange-100';
+        if (customBags.length === 0) {
+          autoDistributeBags();
+        } else {
+          renderBagsList();
+        }
+      } else {
+        sec.classList.add('hidden');
+        btnSingle.className = 'flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-amber-900 text-white shadow-xs';
+        btnSplit.className = 'flex-1 py-1.5 rounded-xl text-[11px] font-bold bg-orange-50 text-amber-900 border border-orange-200 hover:bg-orange-100';
+        customBags = [];
+      }
+    }
+
+    function renderSplitSection() {
+      if (isSplitMode) {
+        renderBagsList();
+      }
+    }
+
+    // Auto-Sort Fill per 5 Butir
+    function autoDistributeBags() {
+      customBags = [];
+
+      // Susun antrean butir/paket
+      let pool = [];
+      ['selam', 'lenjer', 'adaan', 'kulit', 'cheese', 'pkt_favorit'].forEach(k => {
+        const count = cart[k] || 0;
+        for (let i = 0; i < count; i++) {
+          pool.push(k);
+        }
+      });
+
+      if (pool.length === 0) {
+        renderBagsList();
+        return;
+      }
+
+      // Potong per 5 butir per kantong
+      while (pool.length > 0) {
+        const slice = pool.splice(0, 5);
+        let bag = { selam: 0, lenjer: 0, adaan: 0, kulit: 0, cheese: 0, pkt_favorit: 0 };
+        slice.forEach(itemKey => {
+          bag[itemKey] = (bag[itemKey] || 0) + 1;
+        });
+        customBags.push(bag);
+      }
+
+      renderBagsList();
+    }
+
+    function addManualBag() {
+      customBags.push({ selam: 0, lenjer: 0, adaan: 0, kulit: 0, cheese: 0, pkt_favorit: 0 });
+      renderBagsList();
+    }
+
+    function removeBag(idx) {
+      customBags.splice(idx, 1);
+      renderBagsList();
+    }
+
+    function updateBagValue(bagIdx, itemKey, val) {
+      const parsed = parseInt(val) || 0;
+      customBags[bagIdx][itemKey] = parsed;
+      checkBagAllocation();
+    }
+
+    function renderBagsList() {
+      const container = document.getElementById('bagsListContainer');
+      container.innerHTML = '';
+
+      if (customBags.length === 0) {
+        container.innerHTML = '<div class="text-center text-[10px] text-gray-400 py-2">Belum ada kantong terbagi. Klik tombol Auto Split di atas.</div>';
+        checkBagAllocation();
+        return;
+      }
+
+      const itemKeys = [
+        { id: 'selam', name: 'Selam' },
+        { id: 'lenjer', name: 'Lenjer' },
+        { id: 'adaan', name: 'Adaan' },
+        { id: 'kulit', name: 'Kulit' },
+        { id: 'cheese', name: 'Cheese' },
+        { id: 'pkt_favorit', name: 'Favorit' }
+      ];
+
+      customBags.forEach((bag, idx) => {
+        let totalInBag = Object.values(bag).reduce((a, b) => a + (b || 0), 0);
+        let bagSizeBadge = totalInBag <= 5 ? 'S (≤5)' : totalInBag <= 10 ? 'M (6-10)' : 'L (≥11)';
+
+        const div = document.createElement('div');
+        div.className = 'p-2 bg-orange-50/60 rounded-xl border border-orange-200 space-y-1.5';
+
+        div.innerHTML = `
+          <div class="flex justify-between items-center text-[10px]">
+            <div class="flex items-center gap-1.5">
+              <span class="font-bold text-amber-950">🏷️ Kantong ${idx + 1}</span>
+              <span class="bg-white text-orange-700 font-bold px-1.5 py-0.2 rounded border border-orange-200">${bagSizeBadge}</span>
+              <span class="text-gray-500 font-medium">(${totalInBag} butir)</span>
+            </div>
+            <button onclick="removeBag(${idx})" class="text-red-600 font-bold hover:text-red-800">Hapus</button>
+          </div>
+          <div class="grid grid-cols-6 gap-1 text-[9px] font-semibold text-center">
+            ${itemKeys.map(k => `
+              <div>
+                <span class="text-gray-500 block leading-tight">${k.name}</span>
+                <input type="number" min="0" value="${bag[k.id] || 0}" onfocus="this.select()" oninput="updateBagValue(${idx}, '${k.id}', this.value)" class="w-full text-center font-bold bg-white border border-orange-200 rounded py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500">
+              </div>
+            `).join('')}
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      checkBagAllocation();
+    }
+
+    function checkBagAllocation() {
+      const statusEl = document.getElementById('bagAllocStatus');
+      if (!isSplitMode) {
+        statusEl.innerHTML = '';
+        return true;
+      }
+
+      // Hitung total butir di cart vs di bags
+      const keys = ['selam', 'lenjer', 'adaan', 'kulit', 'cheese', 'pkt_favorit'];
+      let cartSum = 0;
+      let bagsSum = 0;
+      let mismatch = false;
+
+      keys.forEach(k => {
+        const cVal = cart[k] || 0;
+        let bVal = 0;
+        customBags.forEach(bag => {
+          bVal += (bag[k] || 0);
+        });
+        cartSum += cVal;
+        bagsSum += bVal;
+        if (cVal !== bVal) mismatch = true;
+      });
+
+      if (cartSum === 0) {
+        statusEl.innerHTML = '<span class="text-gray-400">Pilih menu di atas terlebih dahulu.</span>';
+        return false;
+      }
+
+      if (!mismatch) {
+        statusEl.innerHTML = '<span class="text-emerald-700">✅ Pembagian kantong sudah pas persis dengan pesanan!</span>';
+        return true;
+      } else {
+        statusEl.innerHTML = `<span class="text-rose-600">⚠️ Jumlah butir di kantong (${bagsSum}) belum sama dengan pesanan (${cartSum}).</span>`;
+        return false;
+      }
+    }
+
+    // ================= SUBMIT ORDER =================
     function submitOrder() {
       const cust = document.getElementById('custName').value.trim();
       const itemsInCart = Object.keys(cart);
@@ -530,6 +777,11 @@
       }
       if (itemsInCart.length === 0) {
         alert('Pilih minimal 1 menu pempek.');
+        return;
+      }
+
+      if (isSplitMode && !checkBagAllocation()) {
+        alert('Jumlah butir di kantong-kantong split belum sama dengan pesanan. Klik "Auto Split" atau samakan angkanya dulu ya!');
         return;
       }
 
@@ -560,7 +812,10 @@
         }
       });
 
-      const packagingUsed = calculateOrderPackaging(orderSummaryCounts);
+      // Kemasan yang dipakai
+      const bagsToSave = isSplitMode && customBags.length > 0 ? customBags : null;
+      const packagingUsed = calculateOrderPackaging(orderSummaryCounts, bagsToSave);
+
       for (let key in packagingUsed) {
         packagingStock[key] = (packagingStock[key] || 0) - packagingUsed[key];
       }
@@ -570,6 +825,7 @@
         poDate: getCurrentPoDate(),
         cust: cust,
         counts: orderSummaryCounts,
+        bags: bagsToSave, // Array kantong split
         packaging: packagingUsed,
         gross: gross,
         modal: modal,
@@ -613,7 +869,7 @@
         }
       }
 
-      const pack = order.packaging || calculateOrderPackaging(order.counts);
+      const pack = order.packaging || calculateOrderPackaging(order.counts, order.bags);
       for (let k in pack) {
         packagingStock[k] = (packagingStock[k] || 0) + pack[k];
       }
@@ -648,7 +904,7 @@
           }
         }
       }
-      const pack = order.packaging || calculateOrderPackaging(order.counts);
+      const pack = order.packaging || calculateOrderPackaging(order.counts, order.bags);
       for (let k in pack) {
         packagingStock[k] = (packagingStock[k] || 0) + pack[k];
       }
@@ -666,6 +922,13 @@
       }
       document.getElementById('custName').value = order.cust;
       editingOrderId = order.id;
+
+      if (order.bags && order.bags.length > 0) {
+        customBags = JSON.parse(JSON.stringify(order.bags));
+        setSplitMode(true);
+      } else {
+        setSplitMode(false);
+      }
 
       document.getElementById('editBanner').classList.remove('hidden');
       document.getElementById('btnSubmitOrder').innerText = 'Perbarui Pesanan 🔄';
@@ -740,13 +1003,17 @@
           if (o.counts.cheese) itemSummary.push(`Cheese (${o.counts.cheese})`);
           if (o.counts.pkt_favorit) itemSummary.push(`Paket Favorit (${o.counts.pkt_favorit})`);
 
-          const packInfo = o.packaging || calculateOrderPackaging(o.counts);
+          const packInfo = o.packaging || calculateOrderPackaging(o.counts, o.bags);
           const packLabel = getPackagingLabel(packInfo);
+          const splitBadge = o.bags && o.bags.length > 1 ? `<span class="bg-amber-200 text-amber-950 font-bold px-1.5 py-0.5 rounded text-[9px]">Split ${o.bags.length} Kantong</span>` : '';
 
           return `
             <div class="p-2.5 bg-orange-50/50 rounded-xl border border-orange-200/80 space-y-1">
               <div class="flex justify-between items-center">
-                <span class="font-bold text-amber-950">${idx + 1}. ${o.cust}</span>
+                <div class="flex items-center gap-1.5">
+                  <span class="font-bold text-amber-950">${idx + 1}. ${o.cust}</span>
+                  ${splitBadge}
+                </div>
                 <span class="text-pempek font-bold">IDR ${o.gross.toLocaleString()}</span>
               </div>
               <div class="text-[10px] text-gray-600 font-medium">
@@ -769,8 +1036,8 @@
       document.getElementById('netProfitTxt').innerText = `IDR ${(grossTotal - modalTotal).toLocaleString()}`;
     }
 
-    // Generator Lembaran Kertas A3 Utuh (5 Kolom ke Kanan, Resolusi Tinggi 300 DPI)
-    function generateA3FullSheet(pageOrders, pageIndex, totalPages, bgImg, callback) {
+    // Generator Lembaran Kertas A3 (Mendukung Multi-Stiker per Pesanan)
+    function generateA3FullSheet(pageStickers, pageIndex, totalPages, bgImg, callback) {
       const A3_WIDTH = 3508;
       const A3_HEIGHT = 4960;
       const canvas = document.createElement("canvas");
@@ -778,19 +1045,17 @@
       canvas.height = A3_HEIGHT;
       const ctx = canvas.getContext("2d");
 
-      // Background kertas A3 putih bersih (area potong gunting)
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, A3_WIDTH, A3_HEIGHT);
 
-      // Grid: 5 kolom x 7 baris = 35 stiker per lembar
       const COLS = 5;
       const ROWS = 7;
       const MARGIN_X = 114;
       const MARGIN_Y = 110;
-      const GAP = 40; // Garis putih tipis batas gunting (40px)
-      const STICKER_SIZE = 624; // Ukuran tiap stiker persegi
+      const GAP = 40;
+      const STICKER_SIZE = 624;
 
-      pageOrders.forEach((order, idx) => {
+      pageStickers.forEach((stk, idx) => {
         if (idx >= COLS * ROWS) return;
 
         const col = idx % COLS;
@@ -801,7 +1066,7 @@
         // 1. Gambar Template Stiker
         ctx.drawImage(bgImg, x, y, STICKER_SIZE, STICKER_SIZE);
 
-        // 2. Garis batas tipis pembatas potong abu-abu sangat muda
+        // 2. Garis batas potong abu-abu
         ctx.strokeStyle = "#e2e8f0";
         ctx.lineWidth = 2;
         ctx.strokeRect(x, y, STICKER_SIZE, STICKER_SIZE);
@@ -812,7 +1077,7 @@
         ctx.textBaseline = "middle";
         ctx.font = "bold 15px 'Fredoka', sans-serif";
 
-        const c = order.counts || {};
+        const c = stk.counts || {};
         const scale = STICKER_SIZE / 1024;
         const ovals = [
           { val: c.selam, cx: 419.5, cy: 450.0 },
@@ -829,12 +1094,12 @@
           }
         });
 
-        // 4. Tulis Nama Pembeli (Presisi pas di kolom NAMA)
-        ctx.font = "bold 14px 'Fredoka', sans-serif";
-        ctx.fillText(order.cust, x + (260 * scale), y + (846 * scale));
+        // 4. Tulis Nama Pembeli (Bila split diberi akhiran misal Bunda Alika [1/3])
+        ctx.font = "bold 13.5px 'Fredoka', sans-serif";
+        ctx.fillText(stk.labelNama, x + (260 * scale), y + (846 * scale));
       });
 
-      // Watermark footer kecil nomor lembar A3
+      // Footer
       ctx.fillStyle = "#94a3b8";
       ctx.font = "bold 24px 'Fredoka', sans-serif";
       ctx.textAlign = "right";
@@ -843,7 +1108,31 @@
       callback(canvas.toDataURL("image/png"));
     }
 
-    // Buka Modal & Tampilkan Lembaran A3
+    // Ekstrak Semua Stiker dari Orderan (Mendukung Split)
+    function getAllStickersForPO(filteredOrders) {
+      let stickerList = [];
+
+      filteredOrders.forEach(o => {
+        if (o.bags && o.bags.length > 1) {
+          // Bila di-split, buatkan stiker per kantong
+          o.bags.forEach((bag, bIdx) => {
+            stickerList.push({
+              labelNama: `${o.cust} (${bIdx + 1}/${o.bags.length})`,
+              counts: bag
+            });
+          });
+        } else {
+          // Bila default 1 stiker utuh
+          stickerList.push({
+            labelNama: o.cust,
+            counts: o.counts
+          });
+        }
+      });
+
+      return stickerList;
+    }
+
     function openA3SheetModal() {
       const currentPo = getCurrentPoDate();
       const filteredOrders = orders.filter(o => o.poDate === currentPo);
@@ -853,12 +1142,14 @@
         return;
       }
 
+      const allStickers = getAllStickersForPO(filteredOrders);
+
       const container = document.getElementById('a3SheetContainer');
-      container.innerHTML = '<div class="text-center py-8 text-xs text-gray-500 font-semibold">Menyusun stiker ke lembaran A3...</div>';
+      container.innerHTML = '<div class="text-center py-8 text-xs text-gray-500 font-semibold">Menyusun stiker lembaran A3...</div>';
       document.getElementById('a3SheetModal').classList.remove('hidden');
 
-      const STICKERS_PER_PAGE = 35; // 5 x 7
-      const totalPages = Math.ceil(filteredOrders.length / STICKERS_PER_PAGE);
+      const STICKERS_PER_PAGE = 35;
+      const totalPages = Math.ceil(allStickers.length / STICKERS_PER_PAGE);
 
       const bgImg = new Image();
       bgImg.src = "sticker.png";
@@ -867,14 +1158,14 @@
         let completed = 0;
 
         for (let p = 0; p < totalPages; p++) {
-          const pageOrders = filteredOrders.slice(p * STICKERS_PER_PAGE, (p + 1) * STICKERS_PER_PAGE);
-          generateA3FullSheet(pageOrders, p, totalPages, bgImg, function(pngUrl) {
+          const pageStickers = allStickers.slice(p * STICKERS_PER_PAGE, (p + 1) * STICKERS_PER_PAGE);
+          generateA3FullSheet(pageStickers, p, totalPages, bgImg, function(pngUrl) {
             cardsHtml[p] = `
               <div class="bg-orange-50/70 p-3 rounded-2xl border border-orange-200 flex flex-col items-center gap-2">
                 <div class="w-full flex justify-between items-center px-1">
                   <div>
                     <span class="font-bold text-amber-950 text-xs">Lembar A3 #${p + 1}</span>
-                    <span class="text-[10px] text-gray-500 block">Isi ${pageOrders.length} stiker (${currentPo})</span>
+                    <span class="text-[10px] text-gray-500 block">Isi ${pageStickers.length} stiker (${currentPo})</span>
                   </div>
                   <a href="${pngUrl}" download="Lembar_A3_PempekCia_${currentPo}_Part${p + 1}.png" class="text-xs bg-pempek text-white font-bold px-3 py-1.5 rounded-xl shadow-xs hover:bg-orange-500 flex items-center gap-1">
                     <span>⬇️</span> Unduh A3 (.PNG)
