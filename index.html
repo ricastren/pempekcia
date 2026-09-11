@@ -474,7 +474,6 @@
     let defaultMenu = JSON.parse(localStorage.getItem('pempek_cia_menu')) || defaultMenuList;
     let cukoRecipeData = JSON.parse(localStorage.getItem('pempek_cia_cukorecipe')) || defaultCukoRecipe;
 
-    // Status PO Tutup per Tanggal Batch (Simpan ke Firebase)
     let poBatchStatus = JSON.parse(localStorage.getItem('pempek_cia_batch_status')) || {};
 
     let openAccordions = {};
@@ -665,7 +664,6 @@
       }
     }
 
-    // Toggle Checklist Produksi per Item atau Pesanan
     function toggleOrderItemDone(orderId, itemKey) {
       const ord = orders.find(o => o.id === orderId);
       if (!ord) return;
@@ -729,11 +727,13 @@
       return pack;
     }
 
+    // Algoritma Pembagian Rata per Tipe Pempek (Round-Robin)
     function generateDefaultBags(orderCounts) {
-      let bags = [];
       const oc = orderCounts || {};
       const favCount = oc.pkt_favorit || 0;
+      let bags = [];
 
+      // Paket favorit otomatis dipisah 1 kantong tersendiri
       for (let f = 0; f < favCount; f++) {
         bags.push({
           size: 'S',
@@ -741,24 +741,63 @@
         });
       }
 
-      let pool = [];
-      ['selam', 'lenjer', 'adaan', 'kulit', 'cheese'].forEach(k => {
-        const cnt = oc[k] || 0;
-        for (let i = 0; i < cnt; i++) pool.push(k);
-      });
+      const singleKeys = ['selam', 'lenjer', 'adaan', 'kulit', 'cheese'];
+      const totalSinglePieces = singleKeys.reduce((acc, k) => acc + (oc[k] || 0), 0);
 
-      while (pool.length > 0) {
-        let chunkSize = pool.length >= 11 ? 15 : (pool.length >= 6 ? 10 : 5);
-        let slice = pool.splice(0, chunkSize);
-        let bCounts = { selam: 0, lenjer: 0, adaan: 0, kulit: 0, cheese: 0, pkt_favorit: 0 };
-        slice.forEach(itemKey => {
-          bCounts[itemKey] = (bCounts[itemKey] || 0) + 1;
+      if (totalSinglePieces > 0) {
+        // Tentukan jumlah kantong awal dan target size
+        let targetSize = 'S';
+        let capacity = 5;
+
+        if (totalSinglePieces > 10) {
+          targetSize = 'L';
+          capacity = 15;
+        } else if (totalSinglePieces > 5) {
+          targetSize = 'M';
+          capacity = 10;
+        }
+
+        const numBags = Math.ceil(totalSinglePieces / capacity);
+        let singleBags = [];
+        for (let b = 0; b < numBags; b++) {
+          singleBags.push({
+            size: targetSize,
+            counts: { selam: 0, lenjer: 0, adaan: 0, kulit: 0, cheese: 0, pkt_favorit: 0 }
+          });
+        }
+
+        // Bagi rata tiap varian pempek ke seluruh kantong (1 1 1 ...)
+        singleKeys.forEach(k => {
+          let remaining = oc[k] || 0;
+          let bagIndex = 0;
+          while (remaining > 0) {
+            let placed = false;
+            for (let attempt = 0; attempt < numBags; attempt++) {
+              const currentB = (bagIndex + attempt) % numBags;
+              const curTotal = singleKeys.reduce((s, key) => s + singleBags[currentB].counts[key], 0);
+
+              if (curTotal < capacity) {
+                singleBags[currentB].counts[k]++;
+                remaining--;
+                bagIndex = (currentB + 1) % numBags;
+                placed = true;
+                break;
+              }
+            }
+
+            // Jika semua kantong pas penuh tapi masih ada sisa, buat kantong baru
+            if (!placed) {
+              singleBags.push({
+                size: targetSize,
+                counts: { selam: 0, lenjer: 0, adaan: 0, kulit: 0, cheese: 0, pkt_favorit: 0 }
+              });
+              singleBags[singleBags.length - 1].counts[k]++;
+              remaining--;
+            }
+          }
         });
-        let targetSize = slice.length <= 5 ? 'S' : (slice.length <= 10 ? 'M' : 'L');
-        bags.push({
-          size: targetSize,
-          counts: bCounts
-        });
+
+        bags = bags.concat(singleBags);
       }
 
       return bags;
@@ -982,32 +1021,58 @@
       }
     }
 
+    // Distribusi Rata per Tipe Pempek untuk Split Manual
     function autoDistributeBags(chunkLimit = 5) {
       customBags = [];
+      const keys = ['selam', 'lenjer', 'adaan', 'kulit', 'cheese', 'pkt_favorit'];
+      const totalPieces = keys.reduce((acc, k) => acc + (cart[k] || 0), 0);
 
-      let pool = [];
-      ['selam', 'lenjer', 'adaan', 'kulit', 'cheese', 'pkt_favorit'].forEach(k => {
-        const count = cart[k] || 0;
-        for (let i = 0; i < count; i++) pool.push(k);
-      });
-
-      if (pool.length === 0) {
+      if (totalPieces === 0) {
         renderBagsList();
         return;
       }
 
-      while (pool.length > 0) {
-        const slice = pool.splice(0, chunkLimit);
-        let bCounts = { selam: 0, lenjer: 0, adaan: 0, kulit: 0, cheese: 0, pkt_favorit: 0 };
-        slice.forEach(itemKey => {
-          bCounts[itemKey] = (bCounts[itemKey] || 0) + 1;
-        });
-        let targetSize = chunkLimit <= 5 ? 'S' : (chunkLimit <= 10 ? 'M' : 'L');
-        bags.push({
+      const numBags = Math.ceil(totalPieces / chunkLimit);
+      const targetSize = chunkLimit <= 5 ? 'S' : (chunkLimit <= 10 ? 'M' : 'L');
+
+      for (let i = 0; i < numBags; i++) {
+        customBags.push({
           size: targetSize,
-          counts: bCounts
+          counts: { selam: 0, lenjer: 0, adaan: 0, kulit: 0, cheese: 0, pkt_favorit: 0 }
         });
       }
+
+      // Bagi rata setiap varian pempek yang dipesan ke setiap kantong (Round-Robin)
+      keys.forEach(k => {
+        let remaining = cart[k] || 0;
+        let bagIdx = 0;
+
+        while (remaining > 0) {
+          let placed = false;
+          for (let attempt = 0; attempt < numBags; attempt++) {
+            const curB = (bagIdx + attempt) % numBags;
+            const curBagTotal = keys.reduce((s, itemKey) => s + customBags[curB].counts[itemKey], 0);
+
+            if (curBagTotal < chunkLimit) {
+              customBags[curB].counts[k]++;
+              remaining--;
+              bagIdx = (curB + 1) % numBags;
+              placed = true;
+              break;
+            }
+          }
+
+          // Jika semua kantong sudah mencapai chunkLimit, buat kantong cadangan
+          if (!placed) {
+            customBags.push({
+              size: targetSize,
+              counts: { selam: 0, lenjer: 0, adaan: 0, kulit: 0, cheese: 0, pkt_favorit: 0 }
+            });
+            customBags[customBags.length - 1].counts[k]++;
+            remaining--;
+          }
+        }
+      });
 
       renderBagsList();
     }
@@ -1074,21 +1139,28 @@
             <div class="flex items-center gap-1.5">
               <span class="font-bold text-amber-950">🏷️ Kantong ${idx + 1}</span>
               <select onchange="updateBagSize(${idx}, this.value)" class="bg-white text-orange-800 font-bold border border-orange-200 rounded px-1 py-0.5 text-[9.5px] focus:outline-none">
-                <option value="S" ${bag.size === 'S' ? 'selected' : ''}>Kantong S (50ml)</option>
-                <option value="M" ${bag.size === 'M' ? 'selected' : ''}>Kantong M</option>
-                <option value="L" ${bag.size === 'L' ? 'selected' : ''}>Kantong L (100ml)</option>
+                <option value="S" ${bag.size === 'S' ? 'selected' : ''}>Kantong S (≤5)</option>
+                <option value="M" ${bag.size === 'M' ? 'selected' : ''}>Kantong M (6-10)</option>
+                <option value="L" ${bag.size === 'L' ? 'selected' : ''}>Kantong L (11-15)</option>
               </select>
               <span id="bag-count-label-${idx}" class="text-gray-500 font-medium">(${totalInBag} butir)</span>
             </div>
             <button type="button" onclick="removeBag(${idx})" class="text-red-600 font-bold hover:text-red-800">Hapus</button>
           </div>
           <div class="grid grid-cols-6 gap-1 text-[9px] font-semibold text-center">
-            ${itemKeys.map(k => `
-              <div>
-                <span class="text-gray-500 block leading-tight">${k.name}</span>
-                <input type="number" min="0" value="${c[k.id] || 0}" onfocus="this.select()" oninput="updateBagValue(${idx}, '${k.id}', this.value)" class="w-full text-center font-bold bg-white border border-orange-200 rounded py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500">
-              </div>
-            `).join('')}
+            ${itemKeys.map(k => {
+              const isOrdered = (cart[k.id] || 0) > 0;
+              return `
+                <div>
+                  <span class="block leading-tight ${isOrdered ? 'text-gray-600' : 'text-gray-300'}">${k.name}</span>
+                  <input type="number" min="0" value="${c[k.id] || 0}" 
+                    ${isOrdered ? '' : 'disabled'}
+                    onfocus="this.select()" 
+                    oninput="updateBagValue(${idx}, '${k.id}', this.value)" 
+                    class="w-full text-center font-bold rounded py-0.5 border ${isOrdered ? 'bg-white border-orange-200 text-amber-950 focus:outline-none focus:ring-1 focus:ring-amber-500' : 'bg-gray-100 border-gray-200 text-gray-300 cursor-not-allowed'}">
+                </div>
+              `;
+            }).join('')}
           </div>
         `;
         container.appendChild(div);
@@ -1647,7 +1719,7 @@
         accordionContainer.appendChild(itemCard);
       });
 
-      // Render Resep Cuko Khusus
+      // Render Resep Cuko
       const cukoHpp = calculateBatchCost(cukoRecipeData.recipe);
       const cukoCard = document.createElement('div');
       cukoCard.className = 'bg-amber-50/50 rounded-xl border border-amber-200 overflow-hidden';
@@ -1859,7 +1931,7 @@
         `).join('');
       }
 
-      // Render Kartu Daftar Pesanan (Dengan Checklist Tracking & Mode Lock)
+      // Render Kartu Daftar Pesanan
       const batchListContainer = document.getElementById('batchOrderList');
       const closed = isCurrentPoClosed();
 
@@ -1877,7 +1949,6 @@
             const packLabel = getPackagingLabel(packInfo);
             const splitBadge = bags.length > 1 ? `<span class="bg-amber-200 text-amber-950 font-bold px-1.5 py-0.5 rounded text-[9px]">${bags.length} Kantong</span>` : '';
 
-            // Render Checklist Items kalau Closed, atau teks biasa kalau masih Open
             const itemKeys = [
               { id: 'selam', name: 'Selam' },
               { id: 'lenjer', name: 'Lenjer' },
@@ -1914,7 +1985,6 @@
               itemsHtml = `<div class="text-[11px] text-gray-600 font-medium leading-relaxed">${itemSummary.join(', ')}</div>`;
             }
 
-            // Aksi Footer: Edit/Hapus saat Open, atau Centang Siap Selesai saat Closed
             let footerActionsHtml = '';
             if (closed) {
               footerActionsHtml = `
@@ -2236,7 +2306,6 @@
       if (activeEl) activeEl.classList.remove('hidden');
       if (activeNav) activeNav.className = 'flex flex-col items-center gap-0.5 text-pempek flex-1';
 
-      updatePoLockUI();
       if (tab === 'recap' || tab === 'orders-list' || tab === 'report') {
         renderRecapAndReports();
       }
