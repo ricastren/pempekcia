@@ -55,8 +55,8 @@
   <!-- Frame Portrait 9:16 -->
   <div class="mobile-frame bg-creamy rounded-[40px] border-4 border-amber-900/10 flex flex-col overflow-hidden relative">
     
-    <!-- Top Header & Tanggal PO -->
-    <div class="pt-4 pb-2.5 px-5 bg-white/85 backdrop-blur-md border-b border-orange-100 space-y-2">
+    <!-- Top Header -->
+    <div class="pt-4 pb-2.5 px-5 bg-white/85 backdrop-blur-md border-b border-orange-100 space-y-2 shrink-0 z-20">
       <div class="flex justify-between items-center">
         <div class="flex items-center gap-2">
           <span class="text-2xl">🍡</span>
@@ -72,8 +72,8 @@
         </div>
       </div>
 
-      <!-- Batch Date Selector -->
-      <div class="flex items-center justify-between bg-orange-50/80 px-3 py-1.5 rounded-xl border border-orange-200">
+      <!-- Batch Date Selector (Hanya muncul di Input PO, Dapur, & Pesanan) -->
+      <div id="topBatchDateBar" class="flex items-center justify-between bg-orange-50/80 px-3 py-1.5 rounded-xl border border-orange-200 transition-all">
         <span class="text-[11px] font-bold text-amber-900 flex items-center gap-1">
           📅 <span>Batch PO:</span>
         </span>
@@ -81,12 +81,11 @@
       </div>
     </div>
 
-    <!-- Main Container Body -->
-    <div class="flex-1 overflow-y-auto hide-scrollbar p-4 space-y-3 pb-20" id="mainContainer">
+    <!-- Main Container Body (Scrollable, tidak tertutup navbar) -->
+    <div class="flex-1 overflow-y-auto hide-scrollbar p-4 space-y-3 pb-24" id="mainContainer">
 
-      <!-- ================= TAB 1: INPUT ORDER PO (WIZARD 2 STEP) ================= -->
+      <!-- ================= TAB 1: INPUT ORDER PO ================= -->
       <section id="tab-order" class="space-y-3">
-        <!-- Banner PO Terkunci -->
         <div id="poClosedNotice" class="hidden bg-red-100 border border-red-300 text-red-900 p-2.5 rounded-xl text-xs flex items-center justify-between font-semibold">
           <span>🔒 Batch PO ini sudah ditutup (Locked).</span>
           <button type="button" onclick="switchTab('orders-list')" class="underline text-[10px]">Lihat Pesanan</button>
@@ -162,7 +161,6 @@
               </button>
             </div>
 
-            <!-- Auto Standar Preview -->
             <div id="autoPreviewSection" class="space-y-2 pt-1 border-t border-orange-100">
               <div class="flex justify-between items-center px-1">
                 <span class="text-[10px] text-gray-500 font-bold">📋 Pembagian Kantong Otomatis:</span>
@@ -171,7 +169,6 @@
               <div id="autoBagsContainer" class="space-y-1.5 max-h-56 overflow-y-auto hide-scrollbar"></div>
             </div>
 
-            <!-- Custom Manual Panel -->
             <div id="customManualSection" class="hidden space-y-2 pt-1 border-t border-orange-100">
               <div class="grid grid-cols-4 gap-1.5">
                 <button type="button" onclick="autoDistributeBags(5)" class="py-1 bg-amber-100 text-amber-950 rounded-lg text-[9.5px] font-bold hover:bg-amber-200 text-center">Split 5 (S)</button>
@@ -236,7 +233,6 @@
 
       <!-- ================= TAB 3: DAFTAR PESANAN + CLOSE PO & TRACKING ================= -->
       <section id="tab-orders-list" class="hidden space-y-3">
-        <!-- Sticky Header Close PO / Open PO Bar -->
         <div class="sticky top-0 z-10 bg-white/95 backdrop-blur-md p-2.5 rounded-2xl border border-orange-200 shadow-xs flex items-center justify-between gap-2">
           <div>
             <div class="flex items-center gap-1.5">
@@ -253,10 +249,10 @@
         <div id="batchOrderList" class="space-y-2.5"></div>
       </section>
 
-      <!-- ================= TAB 4: STOK GUDANG & PACKAGING ================= -->
+      <!-- ================= TAB 4: STOK GUDANG (SEMUA TANPA TANGGAL PO) ================= -->
       <section id="tab-stock" class="hidden space-y-3">
         <div class="bg-amber-50/80 border border-amber-200/80 p-2.5 rounded-xl text-[10px] text-amber-900 leading-snug">
-          💡 <b>Stok Saat Ini</b> berubah otomatis (angka merah minus = kekurangan stok). Masukkan angka di kolom <b>+ / -</b> untuk menambah stok belanja atau koreksi.
+          💡 <b>Stok Riil Keseluruhan Gudang</b>: Angka di bawah adalah total akumulasi fisik yang tersedia saat ini (tidak terikat tanggal PO).
         </div>
 
         <div>
@@ -284,29 +280,42 @@
         <button type="button" onclick="applyStockChanges()" class="w-full py-2.5 bg-amber-900 text-white rounded-xl text-xs font-semibold shadow hover:bg-amber-950 transition">Perbarui Stok Sekarang</button>
       </section>
 
-      <!-- ================= TAB 5: LABA & PENGATURAN RESEP ================= -->
+      <!-- ================= TAB 5: LABA AGREGAT & DETAIL INTERAKTIF ================= -->
       <section id="tab-report" class="hidden space-y-3">
+        <!-- Label Status Filter (Semua vs Spesifik Tanggal) -->
+        <div class="flex items-center justify-between px-1">
+          <span id="reportFilterStatusBadge" class="text-[10.5px] font-bold text-amber-950 bg-amber-200/70 border border-amber-300 px-2 py-0.5 rounded-lg">
+            🌐 Semua Riwayat Tanggal PO
+          </span>
+          <button type="button" id="btnResetReportFilter" onclick="resetReportDateFilter()" class="hidden text-[10px] text-red-600 bg-white border border-red-200 font-bold px-2 py-0.5 rounded-lg shadow-xs hover:bg-red-50">
+            ✕ Tampilkan Semua
+          </button>
+        </div>
+
         <div class="grid grid-cols-2 gap-2">
           <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl">
-            <span class="text-[10px] text-emerald-800 block">TOTAL GROSS (OMSET)</span>
+            <span class="text-[10px] text-emerald-800 block font-bold">TOTAL GROSS (OMSET)</span>
             <span class="text-sm font-bold text-emerald-950 mt-1 block" id="grossTxt">IDR 0</span>
           </div>
           <div class="bg-rose-50 border border-rose-200 p-3 rounded-2xl">
-            <span class="text-[10px] text-rose-800 block">TOTAL ESTIMASI MODAL</span>
+            <span class="text-[10px] text-rose-800 block font-bold">TOTAL ESTIMASI MODAL</span>
             <span class="text-sm font-bold text-rose-950 mt-1 block" id="modalTxt">IDR 0</span>
           </div>
         </div>
 
         <div class="bg-amber-100/70 border border-amber-300 p-3.5 rounded-2xl">
-          <span class="text-xs font-bold text-amber-950 block">💰 Laba Bersih PO Ini</span>
+          <span class="text-xs font-bold text-amber-950 block">💰 Laba Bersih</span>
           <span class="text-xl font-bold text-amber-950 block mt-0.5" id="netProfitTxt">IDR 0</span>
-          <span class="text-[10px] text-amber-800/80 mt-1 block">*Omset dikurangi modal otomatis (termasuk Cuko 50ml/100ml)</span>
+          <span class="text-[10px] text-amber-800/80 mt-1 block" id="profitSubtitleTxt">*Total omset dikurangi modal seluruh batch</span>
         </div>
 
-        <!-- Grafik Stacked Bar -->
+        <!-- Grafik Stacked Bar Interaktif -->
         <div class="bg-white p-3.5 rounded-2xl border border-orange-100 shadow-xs space-y-3">
           <div class="flex justify-between items-center border-b border-orange-100 pb-1.5">
-            <h3 class="text-xs font-bold text-amber-950">📊 Grafik Omset per Tipe Pempek (Antar Tanggal PO)</h3>
+            <div>
+              <h3 class="text-xs font-bold text-amber-950">📊 Omset per Tipe Pempek</h3>
+              <span class="text-[9px] text-gray-500 font-medium">Klik batang grafik untuk filter tanggal</span>
+            </div>
             <span class="text-[9px] text-orange-600 bg-orange-50 font-bold px-2 py-0.5 rounded-md">Stacked Bar</span>
           </div>
 
@@ -322,7 +331,7 @@
           <div id="stackedBarChartContainer" class="h-56 flex items-end gap-3 pt-6 px-2 overflow-x-auto hide-scrollbar border-b border-orange-200 relative"></div>
         </div>
 
-        <!-- 1. Master Harga Bahan (2 Baris) -->
+        <!-- Master Harga Bahan -->
         <div class="bg-white p-3.5 rounded-2xl border border-orange-100 shadow-xs space-y-2.5">
           <div class="flex justify-between items-center border-b border-orange-100 pb-1.5">
             <h3 class="text-xs font-bold text-amber-950">⚙️ Master Harga Bahan (2 Baris)</h3>
@@ -331,7 +340,7 @@
           <div id="masterIngredientsContainer" class="space-y-2 text-xs max-h-56 overflow-y-auto hide-scrollbar"></div>
         </div>
 
-        <!-- 2. Rahasia Resep Pempek & Kuah Cuko -->
+        <!-- Rahasia Resep Pempek & Kuah Cuko -->
         <div class="bg-white p-3.5 rounded-2xl border border-orange-100 shadow-xs space-y-2.5">
           <div class="border-b border-orange-100 pb-1.5">
             <h3 class="text-xs font-bold text-amber-950">🤫 Rahasia Resep Pempek & Kuah Cuko</h3>
@@ -342,8 +351,8 @@
 
     </div>
 
-    <!-- Bottom Navigation Bar -->
-    <nav class="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-orange-100 px-3 py-2 flex justify-between items-center rounded-b-[36px]">
+    <!-- Bottom Navigation Bar (Locked / Fixed / Stay) -->
+    <nav class="absolute bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-orange-100 px-3 flex justify-between items-center rounded-b-[36px] z-30 shadow-lg">
       <button type="button" onclick="switchTab('order')" id="nav-order" class="flex flex-col items-center gap-0.5 text-pempek flex-1">
         <span class="text-base">📝</span>
         <span class="text-[9.5px] font-bold">Input PO</span>
@@ -475,6 +484,9 @@
     let cukoRecipeData = JSON.parse(localStorage.getItem('pempek_cia_cukorecipe')) || defaultCukoRecipe;
 
     let poBatchStatus = JSON.parse(localStorage.getItem('pempek_cia_batch_status')) || {};
+
+    // State filter khusus tab Laba (null = Semua Tanggal)
+    let selectedReportDate = null;
 
     let openAccordions = {};
     let cart = {};
@@ -727,13 +739,11 @@
       return pack;
     }
 
-    // Algoritma Pembagian Rata per Tipe Pempek (Round-Robin)
     function generateDefaultBags(orderCounts) {
       const oc = orderCounts || {};
       const favCount = oc.pkt_favorit || 0;
       let bags = [];
 
-      // Paket favorit otomatis dipisah 1 kantong tersendiri
       for (let f = 0; f < favCount; f++) {
         bags.push({
           size: 'S',
@@ -745,7 +755,6 @@
       const totalSinglePieces = singleKeys.reduce((acc, k) => acc + (oc[k] || 0), 0);
 
       if (totalSinglePieces > 0) {
-        // Tentukan jumlah kantong awal dan target size
         let targetSize = 'S';
         let capacity = 5;
 
@@ -766,7 +775,6 @@
           });
         }
 
-        // Bagi rata tiap varian pempek ke seluruh kantong (1 1 1 ...)
         singleKeys.forEach(k => {
           let remaining = oc[k] || 0;
           let bagIndex = 0;
@@ -785,7 +793,6 @@
               }
             }
 
-            // Jika semua kantong pas penuh tapi masih ada sisa, buat kantong baru
             if (!placed) {
               singleBags.push({
                 size: targetSize,
@@ -1021,7 +1028,6 @@
       }
     }
 
-    // Distribusi Rata per Tipe Pempek untuk Split Manual
     function autoDistributeBags(chunkLimit = 5) {
       customBags = [];
       const keys = ['selam', 'lenjer', 'adaan', 'kulit', 'cheese', 'pkt_favorit'];
@@ -1042,7 +1048,6 @@
         });
       }
 
-      // Bagi rata setiap varian pempek yang dipesan ke setiap kantong (Round-Robin)
       keys.forEach(k => {
         let remaining = cart[k] || 0;
         let bagIdx = 0;
@@ -1062,7 +1067,6 @@
             }
           }
 
-          // Jika semua kantong sudah mencapai chunkLimit, buat kantong cadangan
           if (!placed) {
             customBags.push({
               size: targetSize,
@@ -1802,6 +1806,19 @@
       showToast('Bahan dihapus dari Master');
     }
 
+    // Fungsi Pilih / Reset Filter Tanggal di Grafik Laba
+    function selectReportDate(dt) {
+      selectedReportDate = dt;
+      showToast(`🔍 Menampilkan laba tanggal: ${dt}`);
+      renderRecapAndReports();
+    }
+
+    function resetReportDateFilter() {
+      selectedReportDate = null;
+      showToast('🌐 Menampilkan total seluruh tanggal');
+      renderRecapAndReports();
+    }
+
     function renderStackedBarChart(poDatesMap) {
       const chartContainer = document.getElementById('stackedBarChartContainer');
       if (!chartContainer) return;
@@ -1833,13 +1850,15 @@
         const types = batch.types || {};
         const totalBatchOmset = Object.values(types).reduce((a, b) => a + b, 0);
         const barHeightPercent = maxOmset > 0 ? Math.min(100, Math.round((totalBatchOmset / maxOmset) * 100)) : 0;
+        const isSelected = (selectedReportDate === date);
 
         const colDiv = document.createElement('div');
-        colDiv.className = 'flex-1 h-full flex flex-col justify-end items-center gap-1 group relative';
+        colDiv.className = `flex-1 h-full flex flex-col justify-end items-center gap-1 group relative cursor-pointer p-1 rounded-xl transition ${isSelected ? 'bg-orange-100/80 ring-2 ring-pempek' : 'hover:bg-orange-50'}`;
+        colDiv.onclick = () => selectReportDate(date);
 
         colDiv.innerHTML = `
-          <div class="text-[8px] font-bold text-gray-600 mb-0.5">Rp${(totalBatchOmset/1000).toFixed(0)}k</div>
-          <div class="w-full max-w-[28px] bg-gray-100 rounded-t-lg flex flex-col-reverse overflow-hidden transition-all duration-300" style="height: ${Math.max(15, barHeightPercent)}%;">
+          <div class="text-[8px] font-bold ${isSelected ? 'text-pempek' : 'text-gray-600'} mb-0.5">Rp${(totalBatchOmset/1000).toFixed(0)}k</div>
+          <div class="w-full max-w-[28px] bg-gray-100 rounded-t-lg flex flex-col-reverse overflow-hidden shadow-xs transition-all duration-300" style="height: ${Math.max(15, barHeightPercent)}%;">
             ${Object.keys(types).map(tKey => {
               const val = types[tKey] || 0;
               const p = totalBatchOmset > 0 ? (val / totalBatchOmset) * 100 : 0;
@@ -1847,7 +1866,7 @@
               return `<div class="w-full ${typeColors[tKey] || 'bg-gray-400'}" style="height: ${p}%;" title="${tKey}: Rp${val.toLocaleString()}"></div>`;
             }).join('')}
           </div>
-          <span class="text-[8px] text-gray-500 font-semibold truncate max-w-[40px]">${date.substring(5)}</span>
+          <span class="text-[8px] ${isSelected ? 'font-bold text-amber-950' : 'text-gray-500 font-semibold'} truncate max-w-[40px]">${date.substring(5)}</span>
         `;
         chartContainer.appendChild(colDiv);
       });
@@ -1871,8 +1890,12 @@
       if (badgeCountEl) badgeCountEl.innerText = `${filteredOrders.length} Pesanan`;
 
       const piecesTotal = { selam: 0, lenjer: 0, adaan: 0, kulit: 0, cheese: 0 };
-      let grossTotal = 0;
-      let modalTotal = 0;
+      
+      // Hitung khusus akumulasi data untuk tab Laba
+      let allGrossTotal = 0;
+      let allModalTotal = 0;
+      let filteredGrossTotal = 0;
+      let filteredModalTotal = 0;
       let poDatesMap = {};
 
       safeOrders.forEach(order => {
@@ -1884,8 +1907,11 @@
 
         const dStr = order.poDate || 'Tanpa Tanggal';
         if (!poDatesMap[dStr]) {
-          poDatesMap[dStr] = { types: { kulit: 0, adaan: 0, lenjer: 0, cheese: 0, selam: 0, pkt_favorit: 0 } };
+          poDatesMap[dStr] = { types: { kulit: 0, adaan: 0, lenjer: 0, cheese: 0, selam: 0, pkt_favorit: 0 }, gross: 0, modal: 0 };
         }
+
+        poDatesMap[dStr].gross += (order.gross || 0);
+        poDatesMap[dStr].modal += order.modal;
 
         Object.keys(oc).forEach(mId => {
           const qty = oc[mId] || 0;
@@ -1895,10 +1921,18 @@
           }
         });
 
-        if (order.poDate === currentPo) {
-          grossTotal += (order.gross || 0);
-          modalTotal += (order.modal || 0);
+        // Total akumulasi seluruh riwayat PO
+        allGrossTotal += (order.gross || 0);
+        allModalTotal += order.modal;
 
+        // Jika ada filter tanggal yang sedang aktif diklik di grafik
+        if (selectedReportDate && order.poDate === selectedReportDate) {
+          filteredGrossTotal += (order.gross || 0);
+          filteredModalTotal += order.modal;
+        }
+
+        // Akumulasi Butir untuk Tab Dapur/PO
+        if (order.poDate === currentPo) {
           piecesTotal.cheese += (oc.cheese || 0);
           piecesTotal.kulit += (oc.kulit || 0) + ((oc.pkt_favorit || 0) * 1);
           piecesTotal.lenjer += (oc.lenjer || 0) + ((oc.pkt_favorit || 0) * 1);
@@ -2024,14 +2058,34 @@
         }
       }
 
+      // Update Angka di Tab Laba (Agregat Total vs Tanggal Tertentu)
+      const reportGross = selectedReportDate ? filteredGrossTotal : allGrossTotal;
+      const reportModal = selectedReportDate ? filteredModalTotal : allModalTotal;
+      const reportProfit = reportGross - reportModal;
+
       const grossEl = document.getElementById('grossTxt');
-      if (grossEl) grossEl.innerText = `IDR ${grossTotal.toLocaleString()}`;
+      if (grossEl) grossEl.innerText = `IDR ${reportGross.toLocaleString()}`;
       
       const modalEl = document.getElementById('modalTxt');
-      if (modalEl) modalEl.innerText = `IDR ${modalTotal.toLocaleString()}`;
+      if (modalEl) modalEl.innerText = `IDR ${reportModal.toLocaleString()}`;
       
       const netProfitEl = document.getElementById('netProfitTxt');
-      if (netProfitEl) netProfitEl.innerText = `IDR ${(grossTotal - modalTotal).toLocaleString()}`;
+      if (netProfitEl) netProfitEl.innerText = `IDR ${reportProfit.toLocaleString()}`;
+
+      // Badge & Subtitle Tab Laba
+      const filterBadge = document.getElementById('reportFilterStatusBadge');
+      const resetBtn = document.getElementById('btnResetReportFilter');
+      const subtitle = document.getElementById('profitSubtitleTxt');
+
+      if (selectedReportDate) {
+        if (filterBadge) filterBadge.innerText = `📅 PO Tanggal: ${selectedReportDate}`;
+        if (resetBtn) resetBtn.classList.remove('hidden');
+        if (subtitle) subtitle.innerText = `*Omset dikurangi modal khusus batch ${selectedReportDate}`;
+      } else {
+        if (filterBadge) filterBadge.innerText = `🌐 Semua Riwayat Tanggal PO`;
+        if (resetBtn) resetBtn.classList.add('hidden');
+        if (subtitle) subtitle.innerText = `*Total omset dikurangi modal seluruh batch PO`;
+      }
 
       renderStackedBarChart(poDatesMap);
     }
@@ -2306,6 +2360,17 @@
       if (activeEl) activeEl.classList.remove('hidden');
       if (activeNav) activeNav.className = 'flex flex-col items-center gap-0.5 text-pempek flex-1';
 
+      // Sembunyikan tanggal PO di tab Stok & Laba
+      const topDateBar = document.getElementById('topBatchDateBar');
+      if (topDateBar) {
+        if (tab === 'stock' || tab === 'report') {
+          topDateBar.classList.add('hidden');
+        } else {
+          topDateBar.classList.remove('hidden');
+        }
+      }
+
+      updatePoLockUI();
       if (tab === 'recap' || tab === 'orders-list' || tab === 'report') {
         renderRecapAndReports();
       }
