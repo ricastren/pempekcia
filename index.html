@@ -86,6 +86,12 @@
 
       <!-- ================= TAB 1: INPUT ORDER PO (WIZARD 2 STEP) ================= -->
       <section id="tab-order" class="space-y-3">
+        <!-- Banner PO Terkunci -->
+        <div id="poClosedNotice" class="hidden bg-red-100 border border-red-300 text-red-900 p-2.5 rounded-xl text-xs flex items-center justify-between font-semibold">
+          <span>🔒 Batch PO ini sudah ditutup (Locked).</span>
+          <button type="button" onclick="switchTab('orders-list')" class="underline text-[10px]">Lihat Pesanan</button>
+        </div>
+
         <div id="editBanner" class="hidden bg-amber-100 border border-amber-300 text-amber-900 p-2.5 rounded-xl flex justify-between items-center text-xs">
           <span class="font-bold">✏️ Mode Edit Pesanan</span>
           <button type="button" onclick="cancelEditOrder()" class="text-[10px] bg-white px-2 py-1 rounded-md border border-amber-300 font-semibold text-red-600">Batal Edit</button>
@@ -126,7 +132,7 @@
             </div>
             <div class="flex gap-2">
               <button type="button" onclick="resetCart()" class="flex-1 py-2 text-xs font-semibold bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 transition">Reset</button>
-              <button type="button" onclick="goToStep(2)" class="w-full flex-2 py-2 text-xs font-bold bg-pempek text-white rounded-xl shadow-md shadow-orange-300/40 hover:bg-orange-500 transition flex items-center justify-center gap-1">
+              <button type="button" onclick="goToStep(2)" id="btnToStep2" class="w-full flex-2 py-2 text-xs font-bold bg-pempek text-white rounded-xl shadow-md shadow-orange-300/40 hover:bg-orange-500 transition flex items-center justify-center gap-1">
                 <span>Lanjut: Atur Kantong</span> ➡️
               </button>
             </div>
@@ -228,14 +234,20 @@
         </div>
       </section>
 
-      <!-- ================= TAB 3: DAFTAR PESANAN SATU HALAMAN PENUH ================= -->
+      <!-- ================= TAB 3: DAFTAR PESANAN + CLOSE PO & TRACKING ================= -->
       <section id="tab-orders-list" class="hidden space-y-3">
-        <div class="flex justify-between items-center px-1">
+        <!-- Sticky Header Close PO / Open PO Bar -->
+        <div class="sticky top-0 z-10 bg-white/95 backdrop-blur-md p-2.5 rounded-2xl border border-orange-200 shadow-xs flex items-center justify-between gap-2">
           <div>
-            <h2 class="text-xs font-bold text-amber-950">Daftar Orderan Masuk</h2>
-            <span class="text-[10px] text-gray-500 font-medium" id="orderListPageSubtitle">PO Tanggal: -</span>
+            <div class="flex items-center gap-1.5">
+              <span id="poLockStatusBadge" class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md">PO Dibuka</span>
+              <span id="orderListBadgeCount" class="text-[10px] bg-orange-100 text-pempek font-bold px-2 py-0.5 rounded-md">0 Pesanan</span>
+            </div>
+            <span class="text-[9.5px] text-gray-500 font-medium block mt-0.5" id="orderListPageSubtitle">PO Tanggal: -</span>
           </div>
-          <span id="orderListBadgeCount" class="text-[10px] bg-orange-100 text-pempek font-bold px-2 py-0.5 rounded-md">0 Pesanan</span>
+          <button type="button" onclick="toggleClosePo()" id="btnClosePoToggle" class="text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs bg-red-600 text-white hover:bg-red-700 transition flex items-center gap-1">
+            <span>🔒</span> <span id="btnClosePoText">Close PO</span>
+          </button>
         </div>
 
         <div id="batchOrderList" class="space-y-2.5"></div>
@@ -387,7 +399,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // Toast halus tanpa popup alert mengganggu
     function showToast(msg) {
       const toast = document.getElementById('toastNotif');
       if (!toast) return;
@@ -463,9 +474,10 @@
     let defaultMenu = JSON.parse(localStorage.getItem('pempek_cia_menu')) || defaultMenuList;
     let cukoRecipeData = JSON.parse(localStorage.getItem('pempek_cia_cukorecipe')) || defaultCukoRecipe;
 
-    // Menyimpan state accordion mana yang lagi dibuka supaya tidak otomatis nutup
-    let openAccordions = {};
+    // Status PO Tutup per Tanggal Batch (Simpan ke Firebase)
+    let poBatchStatus = JSON.parse(localStorage.getItem('pempek_cia_batch_status')) || {};
 
+    let openAccordions = {};
     let cart = {};
     let isSplitMode = false;
     let customBags = [];
@@ -485,6 +497,7 @@
     document.getElementById('poBatchDate').value = todayStr;
 
     function changePoDate() {
+      updatePoLockUI();
       renderRecapAndReports();
     }
 
@@ -492,8 +505,14 @@
       return document.getElementById('poBatchDate').value || todayStr;
     }
 
+    function isCurrentPoClosed() {
+      const dt = getCurrentPoDate();
+      return !!poBatchStatus[dt];
+    }
+
     function setCloudStatus(state, msg) {
       const el = document.getElementById('cloudStatus');
+      if (!el) return;
       if (state === 'syncing') {
         el.className = 'text-[10px] bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full font-bold flex items-center gap-1';
         el.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span><span>' + msg + '</span>';
@@ -506,6 +525,7 @@
       }
     }
 
+    // Listener Realtime Firestore
     function initFirebaseRealtime() {
       setCloudStatus('syncing', 'Menghubungkan...');
 
@@ -523,17 +543,18 @@
         }
       }, (err) => console.warn('Firestore stock error:', err));
 
-      // 2. Orders Listener
+      // 2. Orders & Batch Status Listener
       db.collection('data').doc('orders').onSnapshot((doc) => {
         if (doc.exists) {
           const d = doc.data();
-          if (d && Array.isArray(d.list)) {
-            orders = d.list;
-            localStorage.setItem('pempek_cia_orders', JSON.stringify(orders));
-            renderRecapAndReports();
-          }
+          if (d && Array.isArray(d.list)) orders = d.list;
+          if (d && d.batchStatus) poBatchStatus = d.batchStatus;
+          localStorage.setItem('pempek_cia_orders', JSON.stringify(orders));
+          localStorage.setItem('pempek_cia_batch_status', JSON.stringify(poBatchStatus));
+          updatePoLockUI();
+          renderRecapAndReports();
         } else {
-          db.collection('data').doc('orders').set({ list: orders }, { merge: true });
+          db.collection('data').doc('orders').set({ list: orders, batchStatus: poBatchStatus }, { merge: true });
         }
         setCloudStatus('online', 'Realtime');
       }, (err) => {
@@ -541,7 +562,7 @@
         setCloudStatus('online', 'Realtime');
       });
 
-      // 3. Recipes & Master Listener
+      // 3. Recipes Master Listener
       db.collection('data').doc('recipes_master').onSnapshot((doc) => {
         if (doc.exists) {
           const d = doc.data();
@@ -572,7 +593,7 @@
       try {
         await Promise.all([
           db.collection('data').doc('stock').set({ pieces: stock, packaging: packagingStock }, { merge: true }),
-          db.collection('data').doc('orders').set({ list: orders }, { merge: true }),
+          db.collection('data').doc('orders').set({ list: orders, batchStatus: poBatchStatus }, { merge: true }),
           db.collection('data').doc('recipes_master').set({
             ingredients: masterIngredients,
             menu: defaultMenu,
@@ -584,6 +605,87 @@
         console.error('Gagal simpan Firebase:', err);
         setCloudStatus('offline', 'Gagal Simpan');
       }
+    }
+
+    // Toggle Kunci Close PO
+    function toggleClosePo() {
+      const dt = getCurrentPoDate();
+      const currentClosed = !!poBatchStatus[dt];
+      poBatchStatus[dt] = !currentClosed;
+
+      localStorage.setItem('pempek_cia_batch_status', JSON.stringify(poBatchStatus));
+      syncToCloud();
+
+      updatePoLockUI();
+      renderRecapAndReports();
+
+      if (poBatchStatus[dt]) {
+        showToast(`🔒 PO ${dt} berhasil ditutup & dikunci!`);
+      } else {
+        showToast(`🔓 PO ${dt} kembali dibuka.`);
+      }
+    }
+
+    function updatePoLockUI() {
+      const closed = isCurrentPoClosed();
+      const badge = document.getElementById('poLockStatusBadge');
+      const btnToggle = document.getElementById('btnClosePoToggle');
+      const btnText = document.getElementById('btnClosePoText');
+      const notice = document.getElementById('poClosedNotice');
+      const btnStep2 = document.getElementById('btnToStep2');
+
+      if (closed) {
+        if (badge) {
+          badge.className = 'text-[10px] bg-red-100 text-red-800 font-bold px-2 py-0.5 rounded-md';
+          badge.innerText = '🔒 PO Ditutup (Locked)';
+        }
+        if (btnToggle) {
+          btnToggle.className = 'text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs bg-gray-600 text-white hover:bg-gray-700 transition flex items-center gap-1';
+        }
+        if (btnText) btnText.innerText = 'Buka Kunci PO';
+        if (notice) notice.classList.remove('hidden');
+        if (btnStep2) {
+          btnStep2.disabled = true;
+          btnStep2.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+      } else {
+        if (badge) {
+          badge.className = 'text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md';
+          badge.innerText = 'PO Dibuka';
+        }
+        if (btnToggle) {
+          btnToggle.className = 'text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs bg-red-600 text-white hover:bg-red-700 transition flex items-center gap-1';
+        }
+        if (btnText) btnText.innerText = 'Close PO';
+        if (notice) notice.classList.add('hidden');
+        if (btnStep2) {
+          btnStep2.disabled = false;
+          btnStep2.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+      }
+    }
+
+    // Toggle Checklist Produksi per Item atau Pesanan
+    function toggleOrderItemDone(orderId, itemKey) {
+      const ord = orders.find(o => o.id === orderId);
+      if (!ord) return;
+      if (!ord.progress) ord.progress = {};
+
+      ord.progress[itemKey] = !ord.progress[itemKey];
+      localStorage.setItem('pempek_cia_orders', JSON.stringify(orders));
+      syncToCloud();
+      renderRecapAndReports();
+    }
+
+    function toggleOrderComplete(orderId) {
+      const ord = orders.find(o => o.id === orderId);
+      if (!ord) return;
+
+      ord.isCompleted = !ord.isCompleted;
+      localStorage.setItem('pempek_cia_orders', JSON.stringify(orders));
+      syncToCloud();
+      renderRecapAndReports();
+      showToast(ord.isCompleted ? `✅ Pesanan ${ord.cust} Selesai!` : `Pesanan ${ord.cust} ditandai belum selesai`);
     }
 
     function getBagPackaging(bag) {
@@ -692,6 +794,11 @@
 
     function goToStep(step) {
       if (step === 2) {
+        if (isCurrentPoClosed()) {
+          showToast('🔒 PO batch ini sudah ditutup. Buka kunci di tab Pesanan untuk input baru.');
+          return;
+        }
+
         const cust = document.getElementById('custName').value.trim();
         const totalPieces = Object.values(cart).reduce((a, b) => a + (b || 0), 0);
         if (!cust) {
@@ -1059,6 +1166,11 @@
     }
 
     function submitOrder() {
+      if (isCurrentPoClosed()) {
+        showToast('🔒 PO batch ini sudah ditutup. Buka kunci di tab Pesanan untuk input baru.');
+        return;
+      }
+
       const cust = document.getElementById('custName').value.trim();
       const itemsInCart = Object.keys(cart);
 
@@ -1113,7 +1225,9 @@
         packaging: packagingUsed,
         gross: gross,
         modal: modal,
-        profit: gross - modal
+        profit: gross - modal,
+        progress: {},
+        isCompleted: false
       };
 
       orders.push(orderData);
@@ -1130,6 +1244,11 @@
     }
 
     function deleteOrder(orderId) {
+      if (isCurrentPoClosed()) {
+        showToast('🔒 PO sedang dikunci (Closed). Buka kunci untuk menghapus.');
+        return;
+      }
+
       const idx = orders.findIndex(o => o.id === orderId);
       if (idx === -1) return;
 
@@ -1166,6 +1285,11 @@
     }
 
     function editOrder(orderId) {
+      if (isCurrentPoClosed()) {
+        showToast('🔒 PO sedang dikunci (Closed). Buka kunci untuk mengedit.');
+        return;
+      }
+
       const idx = orders.findIndex(o => o.id === orderId);
       if (idx === -1) return;
 
@@ -1244,7 +1368,6 @@
       return Math.round(totalBatchCost / batchSize);
     }
 
-    // Save Master Bahan Baku Kustom
     function saveSingleIngredient(key) {
       const nameInput = document.getElementById(`ing_name_${key}`);
       const priceInput = document.getElementById(`ing_price_${key}`);
@@ -1271,7 +1394,6 @@
       }
     }
 
-    // Membaca isi DOM saat ini ke dalam object resep
     function readCurrentRecipeFromDOM(itemId) {
       const item = defaultMenu.find(m => m.id === itemId);
       if (!item) return;
@@ -1289,7 +1411,6 @@
       }
     }
 
-    // Save Resep Menu
     function saveSingleRecipe(itemId) {
       readCurrentRecipeFromDOM(itemId);
       const item = defaultMenu.find(m => m.id === itemId);
@@ -1303,7 +1424,6 @@
       showToast(`✅ Resep ${item.name} disimpan!`);
     }
 
-    // Tambah Bahan ke Resep Pempek (Tanpa refresh, langsung muncul)
     function addIngredientToRecipe(itemId) {
       readCurrentRecipeFromDOM(itemId);
       const selectEl = document.getElementById(`select_add_ing_${itemId}`);
@@ -1316,9 +1436,9 @@
       const item = defaultMenu.find(m => m.id === itemId);
       if (item) {
         if (!item.recipe) item.recipe = {};
-        item.recipe[ingKey] = 50; // Nilai awal default
+        item.recipe[ingKey] = 50;
         item.hpp = calculateHppFromRecipe(item.recipe, item.batchSize);
-        openAccordions[itemId] = true; // Pastikan accordion tetap terbuka
+        openAccordions[itemId] = true;
         updatePackageHpp();
         syncToCloud();
         renderMasterAndRecipes();
@@ -1342,7 +1462,6 @@
       }
     }
 
-    // Resep Cuko
     function readCurrentCukoFromDOM() {
       const yieldInput = document.getElementById('cuko_batch_yield');
       if (yieldInput) cukoRecipeData.batchYieldMl = parseFloat(yieldInput.value) || 1000;
@@ -1424,7 +1543,6 @@
     }
 
     function renderMasterAndRecipes() {
-      // 1. Master Bahan Baku
       const ingContainer = document.getElementById('masterIngredientsContainer');
       if (ingContainer) {
         ingContainer.innerHTML = '';
@@ -1453,7 +1571,6 @@
         }
       }
 
-      // 2. Accordion Resep Pempek & Cuko
       const accordionContainer = document.getElementById('recipeAccordionContainer');
       if (!accordionContainer) return;
       accordionContainer.innerHTML = '';
@@ -1742,28 +1859,83 @@
         `).join('');
       }
 
+      // Render Kartu Daftar Pesanan (Dengan Checklist Tracking & Mode Lock)
       const batchListContainer = document.getElementById('batchOrderList');
+      const closed = isCurrentPoClosed();
+
       if (batchListContainer) {
         if (filteredOrders.length === 0) {
           batchListContainer.innerHTML = `<div class="text-center text-gray-400 py-10 text-xs">Belum ada pesanan di tanggal PO ini</div>`;
         } else {
           batchListContainer.innerHTML = filteredOrders.map((o, idx) => {
             const oc = o.counts || {};
-            const itemSummary = [];
-            if (oc.selam) itemSummary.push(`Selam (${oc.selam})`);
-            if (oc.lenjer) itemSummary.push(`Lenjer (${oc.lenjer})`);
-            if (oc.adaan) itemSummary.push(`Adaan (${oc.adaan})`);
-            if (oc.kulit) itemSummary.push(`Kulit (${oc.kulit})`);
-            if (oc.cheese) itemSummary.push(`Cheese (${oc.cheese})`);
-            if (oc.pkt_favorit) itemSummary.push(`Paket Favorit (${oc.pkt_favorit})`);
+            const prog = o.progress || {};
+            const isDone = !!o.isCompleted;
 
             const bags = o.bags || generateDefaultBags(oc);
             const packInfo = o.packaging || calculateOrderPackaging(oc, bags);
             const packLabel = getPackagingLabel(packInfo);
             const splitBadge = bags.length > 1 ? `<span class="bg-amber-200 text-amber-950 font-bold px-1.5 py-0.5 rounded text-[9px]">${bags.length} Kantong</span>` : '';
 
+            // Render Checklist Items kalau Closed, atau teks biasa kalau masih Open
+            const itemKeys = [
+              { id: 'selam', name: 'Selam' },
+              { id: 'lenjer', name: 'Lenjer' },
+              { id: 'adaan', name: 'Adaan' },
+              { id: 'kulit', name: 'Kulit' },
+              { id: 'cheese', name: 'Cheese' },
+              { id: 'pkt_favorit', name: 'Pkt Favorit' }
+            ];
+
+            let itemsHtml = '';
+            if (closed) {
+              itemsHtml = `
+                <div class="flex flex-wrap gap-1.5 pt-1">
+                  ${itemKeys.map(k => {
+                    const qty = oc[k.id] || 0;
+                    if (qty <= 0) return '';
+                    const checked = !!prog[k.id];
+                    return `
+                      <button type="button" onclick="toggleOrderItemDone('${o.id}', '${k.id}')" class="px-2 py-0.5 rounded-lg text-[10px] font-bold transition ${checked ? 'bg-emerald-500 text-white line-through opacity-80' : 'bg-orange-100 text-amber-950 border border-orange-200'}">
+                        ${checked ? '✓ ' : ''}${k.name} (${qty})
+                      </button>
+                    `;
+                  }).join('')}
+                </div>
+              `;
+            } else {
+              const itemSummary = [];
+              if (oc.selam) itemSummary.push(`Selam (${oc.selam})`);
+              if (oc.lenjer) itemSummary.push(`Lenjer (${oc.lenjer})`);
+              if (oc.adaan) itemSummary.push(`Adaan (${oc.adaan})`);
+              if (oc.kulit) itemSummary.push(`Kulit (${oc.kulit})`);
+              if (oc.cheese) itemSummary.push(`Cheese (${oc.cheese})`);
+              if (oc.pkt_favorit) itemSummary.push(`Paket Favorit (${oc.pkt_favorit})`);
+              itemsHtml = `<div class="text-[11px] text-gray-600 font-medium leading-relaxed">${itemSummary.join(', ')}</div>`;
+            }
+
+            // Aksi Footer: Edit/Hapus saat Open, atau Centang Siap Selesai saat Closed
+            let footerActionsHtml = '';
+            if (closed) {
+              footerActionsHtml = `
+                <div class="flex justify-between items-center pt-2 border-t border-orange-100">
+                  <span class="text-[9.5px] text-gray-500 font-semibold">${isDone ? '✅ Siap Ambil / Kirim' : '⏳ Sedang Diproses Dapur'}</span>
+                  <button type="button" onclick="toggleOrderComplete('${o.id}')" class="px-3 py-1 rounded-xl text-xs font-bold transition shadow-xs ${isDone ? 'bg-emerald-600 text-white' : 'bg-white border border-orange-200 text-amber-950 hover:bg-orange-50'}">
+                    ${isDone ? '✓ Selesai' : 'Tandai Selesai'}
+                  </button>
+                </div>
+              `;
+            } else {
+              footerActionsHtml = `
+                <div class="flex justify-end gap-1.5 pt-1.5 border-t border-orange-100">
+                  <button type="button" onclick="editOrder('${o.id}')" class="px-2.5 py-1 bg-white border border-orange-200 text-amber-900 rounded-lg text-[10px] font-bold hover:bg-orange-100">✏️ Edit</button>
+                  <button type="button" onclick="deleteOrder('${o.id}')" class="px-2.5 py-1 bg-red-50 border border-red-200 text-red-600 rounded-lg text-[10px] font-bold hover:bg-red-100">🗑️ Hapus</button>
+                </div>
+              `;
+            }
+
             return `
-              <div class="p-3 bg-white rounded-2xl border border-orange-100 shadow-xs space-y-1.5">
+              <div class="p-3 bg-white rounded-2xl border ${isDone ? 'border-emerald-300 bg-emerald-50/20' : 'border-orange-100'} shadow-xs space-y-1.5 transition">
                 <div class="flex justify-between items-center">
                   <div class="flex items-center gap-1.5">
                     <span class="font-bold text-xs text-amber-950">${idx + 1}. ${o.cust}</span>
@@ -1771,16 +1943,11 @@
                   </div>
                   <span class="text-pempek font-bold text-xs">IDR ${(o.gross || 0).toLocaleString()}</span>
                 </div>
-                <div class="text-[11px] text-gray-600 font-medium leading-relaxed">
-                  ${itemSummary.join(', ')}
-                </div>
+                ${itemsHtml}
                 <div class="text-[9.5px] text-amber-800 bg-orange-100/60 px-2 py-0.5 rounded-md inline-block">
                   ${packLabel || 'Tanpa Kemasan Tambahan'}
                 </div>
-                <div class="flex justify-end gap-1.5 pt-1.5 border-t border-orange-100">
-                  <button type="button" onclick="editOrder('${o.id}')" class="px-2.5 py-1 bg-white border border-orange-200 text-amber-900 rounded-lg text-[10px] font-bold hover:bg-orange-100">✏️ Edit</button>
-                  <button type="button" onclick="deleteOrder('${o.id}')" class="px-2.5 py-1 bg-red-50 border border-red-200 text-red-600 rounded-lg text-[10px] font-bold hover:bg-red-100">🗑️ Hapus</button>
-                </div>
+                ${footerActionsHtml}
               </div>
             `;
           }).join('');
@@ -2069,16 +2236,17 @@
       if (activeEl) activeEl.classList.remove('hidden');
       if (activeNav) activeNav.className = 'flex flex-col items-center gap-0.5 text-pempek flex-1';
 
+      updatePoLockUI();
       if (tab === 'recap' || tab === 'orders-list' || tab === 'report') {
         renderRecapAndReports();
       }
     }
 
-    // Inisialisasi Pertama Kali
     renderMenu();
     renderStock();
     renderMasterAndRecipes();
     renderRecapAndReports();
+    updatePoLockUI();
     initFirebaseRealtime();
   </script>
 </body>
